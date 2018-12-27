@@ -913,30 +913,30 @@ applyStructuralRules proofTrees system = case system of
                                            K -> proofTrees
 
 
-contraction :: [ModalProofTree] -> [ModalProofTree]
-contraction = mapAppend allPossibleContractions
+-- contraction :: [ModalProofTree] -> [ModalProofTree]
+-- contraction = mapAppend allPossibleContractions
 
-data ContractionMap = End | Bool | Point Bool [ContractionMap] deriving (Eq, Show)
+-- data ContractionMap = End | Bool | Point Bool [ContractionMap] deriving (Eq, Show)
 
-newContractionMapForHypersequent :: Hypersequent -> ContractionMap
-newContractionMapForHypersequent BranchEnd = End
-newContractionMapForHypersequent (World sequent hypersequents) =
-    (Point False (map newContractionMapForHypersequent hypersequents))
+-- newContractionMapForHypersequent :: Hypersequent -> ContractionMap
+-- newContractionMapForHypersequent BranchEnd = End
+-- newContractionMapForHypersequent (World sequent hypersequents) =
+--     (Point False (map newContractionMapForHypersequent hypersequents))
 
-allPossibleContractions :: ModalProofTree -> [ModalProofTree]
-allPossibleContractions Leaf = [Leaf]
-allPossibleContractions Close = [Close]
-allPossibleContractions (Node hypersequent [Leaf]) =
-    let newHypersequents = allHypersequentContractions hypersequent
-    in  map (\newHypersequent ->
-                 (Node hypersequent [newHypersequent [Leaf]])) newHypersequents
+-- allPossibleContractions :: ModalProofTree -> [ModalProofTree]
+-- allPossibleContractions Leaf = [Leaf]
+-- allPossibleContractions Close = [Close]
+-- allPossibleContractions (Node hypersequent [Leaf]) =
+--     let newHypersequents = allHypersequentContractions hypersequent
+--     in  map (\newHypersequent ->
+--                  (Node hypersequent [newHypersequent [Leaf]])) newHypersequents
       
-allHypersequentContractions :: Hypersequent -> [Hypersequent]
-allHypersequentContractions hypersequent =
-    let contractionRange = range . worldCount $ hypersequent
-    in mapAppend allContractionsOfNWorlds hypersequent) contractionRange
+-- allHypersequentContractions :: Hypersequent -> [Hypersequent]
+-- allHypersequentContractions hypersequent =
+--     let contractionRange = range . worldCount $ hypersequent
+--     in mapAppend (allContractionsOfNWorlds hypersequent) contractionRange
 
-allContractionsOfNWorlds :: Hypersequent -> Int -> [Hypersequent]       
+-- allContractionsOfNWorlds :: Hypersequent -> Int -> [Hypersequent]       
 
 -----------------------
 --- Misc. Utilities ---
