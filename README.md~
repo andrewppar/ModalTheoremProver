@@ -81,7 +81,7 @@ The primary interface for proving formulas in System K is `proveK`. Here's an ex
 <h2 class="footnotes">Footnotes: </h2>
 <div id="text-footnotes">
 
-<div class="footdef"><sup><a id="fn.1" name="fn.1" class="footnum" href="#fnr.1">1</a></sup> In my dissertation (see [my website](https://andrewparisi.weebly.com/research.html)) I develop a proof system for modal logics that only uses lists of sequents as opposed to trees of sequents as the primary proof object. These are known as hypersequents. This project spun off of another one with some friends to develop a automated theorem prover for hypersequents. I had some questions as to whether hypersequents or tree hypersequents would be a more effective proof object when it comes to automated theorem proving. For more information about that project email me at [andrew.p.parisi@gmail.com](andrew.p.parisi@gmail.com).</div>
+<div class="footdef"><sup><a id="fn.1" name="fn.1" class="footnum" href="#fnr.1">1</a></sup> In my dissertation (see <https://andrewparisi.weebly.com/research.html>) I develop a proof system for modal logics that only uses lists of sequents as opposed to trees of sequents as the primary proof object. These are known as hypersequents. This project spun off of another one with some friends to develop a automated theorem prover for hypersequents. I had some questions as to whether hypersequents or tree hypersequents would be a more effective proof object when it comes to automated theorem proving. For more information about that project email me at <andrew.p.parisi@gmail.com>.</div>
 
 
 </div>
