@@ -19,6 +19,19 @@
 </div>
 </div>
 
+This purpose of this project is to develop an efficient and modular theorem prover for modal logic. Recent work in modal logic has revealed proof theoretic structures that are flexible and versatile. This project focuses on tree hypersequents. A tree hypersequent is a tree whose nodes are sequents. A sequent is an ordered pair of sets of formulas. Sequents have recently enjoyed more attention in philosophical and proof theoretic circles because of their versatility. Tree hypersequents can be used to represent most standard Kripkean modal systems. This is a result from Francesca Poggiolesi
+
+    @INCOLLECTION{Poggiolesi_TMTHFMPL_2009,
+      AUTHOR={Francesca Poggiolesi},
+      TITLE={The Method of Tree-Hypersequents for Modal Propositional Logic},
+      BOOKTITLE={Towards Mathematical Philosophy},
+      YEAR={2009},
+      PUBLISHER={Springer},
+      PAGES={31--51},
+      VOLUME={28}
+    }
+
+The different modal systems, e.g. system T and system K, are represented by different structural rules that can be applied to the trees. But, for each system the rules that govern formulas, e.g. Left Negation and Right Necessity, are the same for each system. This means that a modal theorem prover that uses them is modular &#x2013; we only need to change structural rules the core theorem prover is the same throughout.
 
 # The `main` Function<a id="sec-1" name="sec-1"></a>
 
@@ -58,17 +71,7 @@ Since we needed the classical propositional rules for a logic, and because it's 
 
 # Modal Theorem Prover<a id="sec-5" name="sec-5"></a>
 
-Currently we only support proofs in System K. That's going to be updated soon with proofs from other modal systems. The cool thing about Tree Hypersequents is that you only really need on modal theorem prover &#x2013; the prover for system K. All of the rules for manipulating formulas themselves are the same throughout the various systems. This is a result from Francesca Poggiolesi
-
-    @INCOLLECTION{Poggiolesi_TMTHFMPL_2009,
-      AUTHOR={Francesca Poggiolesi},
-      TITLE={The Method of Tree-Hypersequents for Modal Propositional Logic},
-      BOOKTITLE={Towards Mathematical Philosophy},
-      YEAR={2009},
-      PUBLISHER={Springer},
-      PAGES={31--51},
-      VOLUME={28}
-    }
+Currently we only support proofs in System K. That's going to be updated soon with proofs from other modal systems. The cool thing about Tree Hypersequents is that you only really need on modal theorem prover &#x2013; the prover for system K. All of the rules for manipulating formulas themselves are the same throughout the various systems. 
 
 ## `proveK`<a id="sec-5-1" name="sec-5-1"></a>
 
@@ -82,6 +85,8 @@ The primary interface for proving formulas in System K is `proveK`. Here's an ex
 <div id="text-footnotes">
 
 <div class="footdef"><sup><a id="fn.1" name="fn.1" class="footnum" href="#fnr.1">1</a></sup> In my dissertation (see [my website](https://andrewparisi.weebly.com/research.html)) I develop a proof system for modal logics that only uses lists of sequents as opposed to trees of sequents as the primary proof object. These are known as hypersequents. This project spun off of another one with some friends to develop a automated theorem prover for hypersequents. I had some questions as to whether hypersequents or tree hypersequents would be a more effective proof object when it comes to automated theorem proving. For more information about that project email me at [andrew.p.parisi@gmail.com](andrew.p.parisi@gmail.com).</div>
+
+<div class="footdef"><sup><a id="fn.2" name="fn.2" class="footnum" href="#fnr.2">2</a></sup> A point of interesting reasearch is whether this is actually better. I think we might actually get an efficiency gain by changing the way that different modal universal rules (i.e. (Necessarily P) when true, and (Possibly P) when false) work when we have different systems. This is worth exploring for both hypersequents and tree hypersequents.</div>
 
 
 </div>

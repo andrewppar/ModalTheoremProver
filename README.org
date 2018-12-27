@@ -1,4 +1,21 @@
 #+TITLE: Tree Hypersequent Theorem Prover
+
+This purpose of this project is to develop an efficient and modular theorem prover for modal logic. Recent work in modal logic has revealed proof theoretic structures that are flexible and versatile. This project focuses on tree hypersequents. A tree hypersequent is a tree whose nodes are sequents. A sequent is an ordered pair of sets of formulas. Sequents have recently enjoyed more attention in philosophical and proof theoretic circles because of their versatility. Tree hypersequents can be used to represent most standard Kripkean modal systems. This is a result from Francesca Poggiolesi[fn:1]
+
+#+BEGIN_EXAMPLE
+@INCOLLECTION{Poggiolesi_TMTHFMPL_2009,
+  AUTHOR={Francesca Poggiolesi},
+  TITLE={The Method of Tree-Hypersequents for Modal Propositional Logic},
+  BOOKTITLE={Towards Mathematical Philosophy},
+  YEAR={2009},
+  PUBLISHER={Springer},
+  PAGES={31--51},
+  VOLUME={28}
+}
+#+END_EXAMPLE
+
+The different modal systems, e.g. system T and system K, are represented by different structural rules that can be applied to the trees. But, for each system the rules that govern formulas, e.g. Left Negation and Right Necessity, are the same for each system. This means that a modal theorem prover that uses them is modular -- we only need to change structural rules the core theorem prover is the same throughout.[fn:2]
+
 * The ~main~ Function
   We've written tests for a couple of the main features of the theorem prover. The ~main~ function runs all the tests in a verbose mode. For now, the theorem prover is meant to be used with a REPL, so different functions can be called and tested. When the guts of the theorem prover are done, we will use the ~main~ function to generate an interface for the user to decide which system they would like to use and input a formula to prove. It might also be nice to ask for an expected result and add that to our test cases. 
 
@@ -35,19 +52,7 @@ True
 #+END_EXAMPLE
 
 * Modal Theorem Prover 
-Currently we only support proofs in System K. That's going to be updated soon with proofs from other modal systems. The cool thing about Tree Hypersequents is that you only really need on modal theorem prover -- the prover for system K. All of the rules for manipulating formulas themselves are the same throughout the various systems. This is a result from Francesca Poggiolesi[fn:1]
-
-#+BEGIN_EXAMPLE
-@INCOLLECTION{Poggiolesi_TMTHFMPL_2009,
-  AUTHOR={Francesca Poggiolesi},
-  TITLE={The Method of Tree-Hypersequents for Modal Propositional Logic},
-  BOOKTITLE={Towards Mathematical Philosophy},
-  YEAR={2009},
-  PUBLISHER={Springer},
-  PAGES={31--51},
-  VOLUME={28}
-}
-#+END_EXAMPLE
+Currently we only support proofs in System K. That's going to be updated soon with proofs from other modal systems. The cool thing about Tree Hypersequents is that you only really need on modal theorem prover -- the prover for system K. All of the rules for manipulating formulas themselves are the same throughout the various systems. 
 
 ** ~proveK~ 
    The primary interface for proving formulas in System K is ~proveK~. Here's an example: 
@@ -58,3 +63,5 @@ True
 #+END_EXAMPLE
 
 [fn:1] In my dissertation (see [[https://andrewparisi.weebly.com/research.html][my website]]) I develop a proof system for modal logics that only uses lists of sequents as opposed to trees of sequents as the primary proof object. These are known as hypersequents. This project spun off of another one with some friends to develop a automated theorem prover for hypersequents. I had some questions as to whether hypersequents or tree hypersequents would be a more effective proof object when it comes to automated theorem proving. For more information about that project email me at [[mailto:andrew.p.parisi@gmail.com][andrew.p.parisi@gmail.com]].
+
+[fn:2] A point of interesting reasearch is whether this is actually better. I think we might actually get an efficiency gain by changing the way that different modal universal rules (i.e. (Necessarily P) when true, and (Possibly P) when false) work when we have different systems. This is worth exploring for both hypersequents and tree hypersequents.
