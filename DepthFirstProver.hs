@@ -168,7 +168,7 @@ showTree :: (Show a) => (Tree a) -> Int -> String
 showTree Leaf depth = (replicate depth ' ') ++ "O\n"
 showTree Close depth = (replicate depth ' ') ++ "X\n"
 showTree (Node a trees) depth =
-    (replicate depth ' ') ++ (show a ) ++ "\n" ++
+    (replicate depth ' ') ++ "-" ++ (show a ) ++ "\n" ++
                               (joinStrings " " (map (\tree -> showTree tree (5+ depth)) trees)) 
 
 class ProofTree a where
@@ -631,16 +631,23 @@ makeModelFromSequent (Sequent a b) = makeModel a b
 
 {-| Modal Logic |-}
 
-data System = K 
+data System = K | T
 
-data Hypersequent = BranchEnd | World Sequent [Hypersequent] deriving (Eq, Show)
+data Hypersequent = BranchEnd | World Sequent [Hypersequent] deriving (Eq)
 -- We're not going to use the Tree structure because it is too overloaded even though this really is just a tree
 
---hypersequentShow :: Hypersequent -> Int -> String
---hypersequentShow                     
-                  
+instance Show Hypersequent where
+    show hypersequent = showHypersequent hypersequent 0
 
-                  
+showHypersequent :: Hypersequent -> Int -> String 
+showHypersequent BranchEnd depth = (replicate depth ' ') ++ "B\n"
+showHypersequent (World seq hypersequents) depth =
+    (replicate depth ' ') ++ (show seq ) ++ "\n" ++
+                              (joinStrings " " (map
+                                                (\hypersequent ->
+                                                     showHypersequent hypersequent (5+ depth))
+                                                hypersequents)) 
+
 type ModalProofTree = Tree Hypersequent
 
 ---------------------
@@ -660,8 +667,12 @@ everyInHypersequent predicate (World sequent hypersequents) =
     if predicate sequent
     then generalizedConjunction . (map (everyInHypersequent predicate)) $ hypersequents
     else False
-                           
--- we revamped what a hyperseuqent is. All this needs to get rewritten.
+
+hypersequentDepth :: Hypersequent -> Int
+hypersequentDepth BranchEnd = 0
+hypersequentDepth (World seq hypersequents) =
+    1 + (maximum . (map hypersequentDepth) $ hypersequents)
+                                              
 makeStartingHypersequent :: Formula -> Hypersequent
 makeStartingHypersequent formula = World (makePositiveSequent formula) [BranchEnd]
 
@@ -686,7 +697,6 @@ modalProofTreesStatus oldTrees newTrees depth system =
     then ((head newTrees), NotProven)
     else surveyProofTreesForStatus newTrees system
 
-
 surveyProofTreesForStatus :: [ModalProofTree] -> System -> (ModalProofTree, ProofTreeStatus)
 surveyProofTreesForStatus [] _ = (emptyModalProofTree, Continue)
 surveyProofTreesForStatus (tree:trees) system =
@@ -703,7 +713,7 @@ getModalProofTreeStatus tree system =
        else if leafNodesContainModalCounterExampleP openLeafNodes system
        then CounterExampleGenerated
        else NotProven
-      
+
 leafNodesContainModalCounterExampleP :: [Hypersequent] -> System -> Bool
 leafNodesContainModalCounterExampleP hypersequents system =
     anyInListMeetsCriteria groundHypersequentP hypersequents
@@ -712,7 +722,10 @@ groundHypersequentP :: Hypersequent -> Bool
 groundHypersequentP = everyInHypersequent atomicSequentP
 
 proveK :: Formula -> Bool
-proveK formula = modalProve formula K          
+proveK formula = modalProve formula K
+
+proveT :: Formula -> Bool                 
+proveT formula = modalProve formula T                 
     
 modalProve :: Formula -> System -> Bool
 modalProve formula system =
@@ -742,18 +755,30 @@ modalProveOneStep trees system =
     in  applyStructuralRules innerProveOneStep system
 --       
 applyInnerRules :: ModalProofTree -> ModalProofTree
-applyInnerRules =
-                  applyLeftNecessity .
+applyInnerRules = applyLeftNecessity .
                   applyRightPossibility .
                   applyLeftPossibility .
                   applyRightNecessity .
-                  (applyPropositionalRule hypersequentLeftConjunction) .
+                  applyPropositionalRulesToQuiescence 
+                                      
+applyPropositionalRulesToQuiescence :: ModalProofTree -> ModalProofTree 
+applyPropositionalRulesToQuiescence proofTree =
+   let newTree =  (applyPropositionalRule hypersequentLeftConjunction) .
                   (applyPropositionalRule hypersequentRightDisjunction) .
                   (applyPropositionalRule hypersequentLeftNegation) .
                   (applyPropositionalRule hypersequentRightNegtaion) .
                   (applyPropositionalRule hypersequentRightConjunction) .
-                  (applyPropositionalRule hypersequentLeftDisjunction) 
-         
+                  (applyPropositionalRule hypersequentLeftDisjunction) $ proofTree
+   in if modalProofTreePropositionalQuiesceDoneP proofTree newTree
+      then newTree
+      else applyPropositionalRulesToQuiescence newTree
+
+modalProofTreePropositionalQuiesceDoneP :: ModalProofTree -> ModalProofTree -> Bool
+modalProofTreePropositionalQuiesceDoneP oldTree newTree =
+    if oldTree == newTree || [] == (gatherModalOpenLeafNodes newTree)
+    then True
+    else False 
+
 applyPropositionalRule :: (Hypersequent -> [Hypersequent]) -> ModalProofTree -> ModalProofTree
 applypropositionalrule _ Leaf = Leaf
 applyPropositionalRule _ Close = Close
@@ -774,6 +799,7 @@ makeTreePossiblyClosingBranch :: Hypersequent -> ModalProofTree
 makeTreePossiblyClosingBranch hypersequent = (Node hypersequent (if hypersequentAxiomP hypersequent
                                                                  then [Close]
                                                                  else [Leaf]))
+
 -- Propositional Rules
 
 hypersequentLeftConjunction :: Hypersequent -> [Hypersequent]
@@ -907,36 +933,77 @@ hypersequentExistentialModal polarity test subformulaFn (World sequent hypersequ
 
                              
 
--- Structural Rules                               
+-- Structural Rules
+hypersequentFold :: (Hypersequent -> a) -> (Sequent -> [a] -> a) -> Hypersequent -> a
+hypersequentFold endFn _ BranchEnd = endFn BranchEnd
+hypersequentFold endFn worldFn (World seq hypersequents) =  worldFn seq (map (hypersequentFold endFn worldFn) hypersequents)
+
 applyStructuralRules :: [ModalProofTree] -> System -> [ModalProofTree]
 applyStructuralRules proofTrees system = case system of
                                            K -> proofTrees
+                                           T -> mapAppend contraction proofTrees
 
+--- Contraction ---                                                
+contraction :: ModalProofTree -> [ModalProofTree]
+contraction Leaf = [Leaf]
+contraction Close = [Close]
+contraction (Node hypersequent [Leaf]) =
+    map (\newHypersequent ->
+             (Node hypersequent [(makeTreePossiblyClosingBranch newHypersequent)])) .
+    contractHypersequent $ hypersequent
+contraction (Node hypersequent [Close]) = [(Node hypersequent [Close])]
+contraction (Node hypersequent trees) =
+    let newProofTrees = map contraction trees
+    in map (\newTrees -> Node hypersequent newTrees) . cartesianProduct $ newProofTrees
 
--- contraction :: [ModalProofTree] -> [ModalProofTree]
--- contraction = mapAppend allPossibleContractions
+contractHypersequent :: Hypersequent -> [Hypersequent]
+contractHypersequent hypersequent =
+    let levelsToContract = range .  (\x -> x - 1) . hypersequentDepth $ hypersequent
+    in mapAppend (\num -> contractLevelNNodes num hypersequent) levelsToContract
+                                               
+contractRootNode :: Hypersequent -> Hypersequent
+contractRootNode BranchEnd = BranchEnd
+contractRootNode (World seq [BranchEnd]) = (World seq [(World seq [BranchEnd])])
+contractRootNode (World seq hypersequents) = (World seq ((World seq [BranchEnd]):hypersequents)) 
 
--- data ContractionMap = End | Bool | Point Bool [ContractionMap] deriving (Eq, Show)
+contractLevel1Nodes :: Hypersequent -> [Hypersequent]
+contractLevel1Nodes BranchEnd = [BranchEnd]
+contractLevel1Nodes (World seq []) = []
+contractLevel1Nodes (World seq (hypersequent:hypersequents)) =
+    contractLeve1NodesInternal [] hypersequents seq hypersequent
+                   
+contractLeve1NodesInternal :: [Hypersequent] -> [Hypersequent] ->
+                              Sequent -> Hypersequent -> [Hypersequent]
+contractLeve1NodesInternal earlier [] seq hypersequent =
+    [(World seq (earlier ++ [contractRootNode hypersequent]))] 
+contractLeve1NodesInternal earlier later rootSequent  hypersequent =
+    let contractedHypersequent = contractRootNode hypersequent
+        result = World rootSequent (earlier ++ (contractedHypersequent:later))
+        recursiveCase =
+            contractLeve1NodesInternal
+            (earlier ++ [hypersequent]) (tail later) rootSequent (head later)
+     in result:recursiveCase
 
--- newContractionMapForHypersequent :: Hypersequent -> ContractionMap
--- newContractionMapForHypersequent BranchEnd = End
--- newContractionMapForHypersequent (World sequent hypersequents) =
---     (Point False (map newContractionMapForHypersequent hypersequents))
-
--- allPossibleContractions :: ModalProofTree -> [ModalProofTree]
--- allPossibleContractions Leaf = [Leaf]
--- allPossibleContractions Close = [Close]
--- allPossibleContractions (Node hypersequent [Leaf]) =
---     let newHypersequents = allHypersequentContractions hypersequent
---     in  map (\newHypersequent ->
---                  (Node hypersequent [newHypersequent [Leaf]])) newHypersequents
-      
--- allHypersequentContractions :: Hypersequent -> [Hypersequent]
--- allHypersequentContractions hypersequent =
---     let contractionRange = range . worldCount $ hypersequent
---     in mapAppend (allContractionsOfNWorlds hypersequent) contractionRange
-
--- allContractionsOfNWorlds :: Hypersequent -> Int -> [Hypersequent]       
+contractLevelNNodes :: Int -> Hypersequent -> [Hypersequent]
+contractLevelNNodes 0 hypersequent = [contractRootNode hypersequent]
+contractLevelNNodes 1 hypersequent = contractLevel1Nodes hypersequent
+contractLevelNNodes n BranchEnd = [BranchEnd]
+contractLevelNNodes n (World seq hypersequents) =
+    let recursiveCase = mapAppend (contractLevelNNodes (n - 1)) hypersequents
+        finalIndex    = (length hypersequents) - 1                
+        (ignore, result) =
+            foldr (\hypersequent (index,result) ->
+                       contractLevelNNodesHelper seq hypersequents hypersequent (index, result))
+                      (finalIndex, []) recursiveCase
+    in result
+                       
+contractLevelNNodesHelper :: Sequent -> [Hypersequent] -> Hypersequent -> (Int, [Hypersequent]) -> (Int, [Hypersequent])
+contractLevelNNodesHelper seq hypersequents hypersequent (index,result) =
+    let newHypersequents = replaceItemAtIndex hypersequent hypersequents index
+        contractedHypersequent = (World seq newHypersequents) 
+    in if newHypersequents == hypersequents
+       then ((index - 1), result)
+       else ((index - 1), (contractedHypersequent:result)) 
 
 -----------------------
 --- Misc. Utilities ---
@@ -1007,6 +1074,14 @@ removeDuplicates (x:y:zs) = if x == y
                             then (y:(removeDuplicates zs))
                             else (x: (removeDuplicates (y:zs)))
 
+replaceItemAtIndex :: a -> [a] -> Int -> [a]
+replaceItemAtIndex item [] _ = []
+replaceItemAtIndex y (x:xs) 0 = (y:xs)
+replaceItemAtIndex y (x:xs) n =  (x:replaceItemAtIndex y xs (n - 1))
+
+range :: Int -> [Int]
+range num = [0..num]
+
 {-| Parallel Experiment |-}
 
 parallelMap :: (a -> b) -> [a] -> [b]
@@ -1035,22 +1110,30 @@ type Verbosity = String
 testCase :: (Eq b) => (a -> b) -> a -> b -> Bool
 testCase f input output = (f input) == output
 
-showTestCase :: (Show a) => (Show b) => (Eq b) => (a -> b) -> a -> b -> IO ()
+showTestCase :: (Show a) => (Show b) => (Eq b) => (a -> b) -> a -> b -> (Bool, IO ())
 showTestCase function input output = let result = function input
                                          bool   = result == output
-                                     in do putStrLn ( "Input: " ++ (show input))
-                                           putStrLn ("Desired: " ++ (show output))
-                                           if bool
-                                           then putStrLn "Success"
-                                           else do putStrLn "Failure"
-                                                   putStrLn ("Actual: " ++ (show result))
-                                           putStrLn "" 
+                                     in (bool, do putStrLn ( "Input: " ++ (show input))
+                                                  putStrLn ("Desired: " ++ (show output))
+                                                  if bool
+                                                  then putStrLn "Success\n"
+                                                  else do putStrLn "Failure"
+                                                          putStrLn ("Actual: " ++
+                                                                    (show result) ++
+                                                                    "\n"))
 
 testCaseTable :: (Eq b) => (a -> b) -> [(a,b)] -> Bool
 testCaseTable function inputOutputPairs = (foldr (\(input,output) success -> if (testCase function input output) then (success && True) else (success && False))) True inputOutputPairs
 
 testCaseTableVerbose :: (Eq b, Show a, Show b) => (a -> b) -> [(a,b)] -> IO ()
-testCaseTableVerbose function inputOutputPairs = sequence_ (map (\(input,output) -> showTestCase function input output) inputOutputPairs)
+testCaseTableVerbose function inputOutputPairs =
+    let results = (map (\(input,output) -> showTestCase function input output) inputOutputPairs)
+    in do sequence_ . map snd $ results
+          putStrLn $ "\nOverall Result: " ++
+                   if (generalizedConjunction . map fst) results
+                   then "Success\n"
+                   else "Failure\n"
+        
 
 ---------------- Run All Tests
 allTests :: [Bool]
@@ -1065,6 +1148,9 @@ allTests = [canonicalizerTest,
            classicalLeftNegationTest,
            cartesianProductTest,
            proveKTest,
+           contractRootNodeTest,
+           contractLevel1NodesTest,
+           proveTTest, 
            generalizedConjunctionTest,
            generalizedDisjunctionTest
            ]
@@ -1081,9 +1167,11 @@ allTestsWithName = zip ["canonicalierTest",
                         "classicalLeftNegation",
                         "cartesianProductTest",
                         "proveKTest",
+                        "contractRootNodeTest",
+                        "contractLevel1NodesTest", 
+                        "proveTTest",
                         "generalizedConjunctionTest",
-                        "generalizedDisjunctionTest"
-                        
+                        "generalizedDisjunctionTest" 
                         ]
                    allTests
                        
@@ -1100,7 +1188,9 @@ runAllTestsVerbose = let testRuns = map (\testWithName ->
                      in do
                        sequence_ (map snd testRuns)
                        putStrLn ""
-                       putStrLn $ "Overall Result: " ++ (show finalResult)
+                       putStrLn $ "Overall Result: " ++ if finalResult
+                                                        then "Success!!\n"
+                                                        else "Failure\n"
         
                   
                         
@@ -1359,6 +1449,106 @@ proveKTestCaseTable = let atomP = makeAtom "p"
                         True)
 
                          ]
+
+
+proveTTest :: Bool 
+proveTTest = 
+ testCaseTable proveT proveTTestCaseTable 
+
+proveTTestVerbose :: IO () 
+proveTTestVerbose = 
+ testCaseTableVerbose proveT proveTTestCaseTable
+
+proveTTestCaseTable :: [(Formula,Bool)] 
+proveTTestCaseTable =
+    let p   = makeAtom "p"
+        q   = makeAtom "q"
+        nec = Necessarily
+        pos = Possibly
+    in
+      [
+       -- 0 
+       ((Implies
+         (nec p)
+         p),
+        True),
+
+       -- 1 
+       ((Implies
+         p
+         (pos p)),
+        True),
+
+       -- 2 
+       ((Implies
+         (nec (nec p))
+         p),
+        True),
+
+       -- 3
+       ((Implies
+         (nec p)
+         (nec (nec p))),
+         False),
+
+       -- 4
+       ((Implies
+         (pos
+          (Implies
+           p
+           (nec q)))
+         (Implies
+          (nec p)
+          (pos q))),
+        True),
+
+       -- 5
+       ((Implies
+         (nec
+          (Implies
+           p
+           (nec q)))
+          (Implies
+           (pos p)
+           (pos q))),
+        True),
+
+       -- 6
+       ((Implies
+        (Implies
+         (nec p)
+         (pos q))
+        (pos
+         (Implies
+          p
+          (pos q)))),
+        True),
+
+       -- 7
+       ((Implies
+         (Implies
+          (nec p)
+          (nec q))
+         (pos
+          (Implies
+           p
+           (pos q)))),
+        True),
+
+       -- 8
+       ((Implies
+         (nec (nec p))
+         (nec p)),
+        True),
+
+       -- 9
+       ((Implies
+         (nec p)
+         (pos p)),
+        True)
+
+
+      ]
 
 ---- Utility Tests
 
@@ -1664,6 +1854,94 @@ classicalLeftNegationTestCaseTable =
     ([testSequent5],
      [(makeSequent [r] [p])])
     ]
+
+contractRootNodeTest :: Bool 
+contractRootNodeTest = 
+ testCaseTable contractRootNode contractRootNodeTestCaseTable 
+
+contractRootNodeTestVerbose :: IO () 
+contractRootNodeTestVerbose = 
+ testCaseTableVerbose contractRootNode contractRootNodeTestCaseTable
+
+contractRootNodeTestCaseTable :: [(Hypersequent,Hypersequent)] 
+contractRootNodeTestCaseTable =
+     let a = makePositiveSequent p
+         b = makePositiveSequent q
+         c = makePositiveSequent (Implies p q)
+         d = makePositiveSequent (Or [p,q])
+         hyperInput = (World a
+                       [(World c [BranchEnd]),
+                        (World b
+                         [(World d [BranchEnd])])])
+         hyperResult = (World a
+                        [(World a [BranchEnd]),
+                         (World c [BranchEnd]),
+                         (World b
+                          [(World d [BranchEnd])])])
+     in [(hyperInput, hyperResult),
+         ((World a [BranchEnd]),
+          (World a [(World a [BranchEnd])]))]
+
+contractLevel1NodesTest :: Bool 
+contractLevel1NodesTest = 
+ testCaseTable contractLevel1Nodes contractLevel1NodesTestCaseTable 
+
+contractLevel1NodesTestVerbose :: IO () 
+contractLevel1NodesTestVerbose = 
+ testCaseTableVerbose contractLevel1Nodes contractLevel1NodesTestCaseTable
+
+contractLevel1NodesTestCaseTable :: [(Hypersequent,[Hypersequent])] 
+contractLevel1NodesTestCaseTable = 
+      let a = makePositiveSequent p
+          b = makePositiveSequent q
+          c = makePositiveSequent (Implies p q)
+          d = makePositiveSequent (Or [p,q])
+          hyperInput = (World a
+                        [(World c [BranchEnd]),
+                         (World b
+                          [(World d [BranchEnd])])])
+          hyperResult = [(World a
+                          [(World c
+                            [(World c [BranchEnd])]),
+                           (World b
+                            [(World d [BranchEnd])])]),
+                         (World a
+                          [(World c [BranchEnd]),
+                           (World b
+                            [(World b [BranchEnd]),
+                             (World d [BranchEnd])])])] 
+      in [(hyperInput, hyperResult),
+                                   
+          ((World a
+           [(World b [BranchEnd]), (World c [BranchEnd]), (World d [BranchEnd])]),
+           
+           [(World a
+           [(World b
+             [(World b [BranchEnd])]),
+            (World c
+             [BranchEnd]),
+            (World d
+             [BranchEnd])]),
+           (World a
+           [(World b
+             [BranchEnd]),
+            (World c
+             [(World c [BranchEnd])]),
+            (World d
+             [BranchEnd])]),
+          (World a
+           [(World b
+             [BranchEnd]),
+            (World c
+             [BranchEnd]),
+            (World d
+             [(World d [BranchEnd])])])])
+         ]
+                
+
+          
+
+--- Utility Tests
                                    
 generalizedConjunctionTest :: Bool 
 generalizedConjunctionTest = 
@@ -1753,9 +2031,13 @@ cartesianProductTestCaseTable = [
  ([[1,2], [3]],
   [[1,3], [2,3]])              
 
- ] 
-
+ ]
 
 --- Because I'm lazy
 p = makeAtom "p"
 q = makeAtom "q"    
+a = makePositiveSequent p
+b = makePositiveSequent q
+c = makePositiveSequent (Implies p q)
+d = makePositiveSequent (Or [p,q])
+hyperInput = (World a [(World c [BranchEnd]), (World b [(World d [(World a [BranchEnd])])])])
