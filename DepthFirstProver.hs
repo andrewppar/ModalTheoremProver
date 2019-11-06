@@ -391,8 +391,8 @@ generateHypersequentProofTree proofTrees system depth =
 
 modalProveOneStep :: [ModalProofTree] -> System -> [ModalProofTree]
 modalProveOneStep trees system =  (map applyInnerRules) .
-                                  (map applyLeftNecessity) .
-                                  (map applyRightPossibility) .
+                                  (map (applyLeftNecessity system)) .
+                                  (map (applyRightPossibility system)) .
                                   slowRemoveDuplicates .
                                   applyStructuralRules system .
                                   (map applyInnerRules) $ trees
@@ -483,11 +483,13 @@ makeNewHypersequent :: Sequent -> [[Hypersequent]] -> [Hypersequent]
 makeNewHypersequent sequent hypersequentsList = map (World sequent) hypersequentsList
 
 --Modal Rules
-applyLeftNecessity :: ModalProofTree -> ModalProofTree
-applyLeftNecessity = applyModalRule hypersequentLeftNecessity
+applyLeftNecessity :: System -> ModalProofTree -> ModalProofTree
+applyLeftNecessity Four tree  =  applyModalRule hypersequentFourLeftNecessity tree
+applyLeftNecessity system tree = applyModalRule hypersequentLeftNecessity tree
 
-applyRightPossibility :: ModalProofTree -> ModalProofTree
-applyRightPossibility = applyModalRule hypersequentRightPossibility
+applyRightPossibility :: System -> ModalProofTree -> ModalProofTree
+applyRightPossibility Four tree =  applyModalRule hypersequentFourRightPossibility tree
+applyRightPossibility system tree = applyModalRule hypersequentRightPossibility tree
 
 applyRightNecessity :: ModalProofTree -> ModalProofTree
 applyRightNecessity = applyModalRule hypersequentRightNecessity
@@ -510,12 +512,36 @@ applyModalRule hypersequentTransform (Node hypersequent [Leaf]) =
 applyModalRule  hypersequentTransform (Node hypersequent modalProofTrees) =
     (Node hypersequent (map (applyModalRule hypersequentTransform) modalProofTrees))
 
-
 hypersequentRightPossibility :: Hypersequent -> Hypersequent
 hypersequentRightPossibility = hypersequentUniversalModal Positive possibilityP possibility
 
 hypersequentLeftNecessity :: Hypersequent -> Hypersequent
 hypersequentLeftNecessity = hypersequentUniversalModal Negative necessityP necessity
+
+hypersequentFourLeftNecessity :: Hypersequent -> Hypersequent 
+hypersequentFourLeftNecessity = hypersequentFourUniversal Negative 
+
+hypersequentFourRightPossibility :: Hypersequent -> Hypersequent 
+hypersequentFourRightPossibility = hypersequentFourUniversal Positive
+
+hypersequentFourUniversal :: Polarity -> Hypersequent -> Hypersequent 
+hypersequentFourUniversal _ BranchEnd = BranchEnd 
+hypersequentFourUniversal _ (World sequent [BranchEnd]) = (World sequent [BranchEnd])
+hypersequentFourUniversal polarity (World sequent hypersequents) = 
+    let positiveFormulas = posFormulas sequent 
+        negativeFormulas = negFormulas sequent 
+        (relevantFormulas, irrelevantFormulas) = case polarity of 
+                                                      Negative -> gatherFormulas necessityP negativeFormulas
+                                                      Positive -> gatherFormulas possibilityP positiveFormulas
+        newFormulas = map (case polarity of 
+                                Negative -> necessity 
+                                Positive -> possibility) relevantFormulas
+        newSequent = case polarity of  
+                          Negative -> makeSequent irrelevantFormulas positiveFormulas 
+                          Positive -> makeSequent negativeFormulas irrelevantFormulas
+        recursiveHypersequents = map (hypersequentFourUniversal polarity) hypersequents
+        newHypersequents = map (\hypersequent -> addAllFormulasToAllWorlds polarity hypersequent newFormulas) recursiveHypersequents
+     in (World newSequent newHypersequents)
 
 hypersequentUniversalModal :: Polarity -> (Formula -> Bool) -> (Formula -> Formula) -> Hypersequent -> Hypersequent -- @todo experiment here whether structural rules or rules for the application of universalModals per system is more efficent. I think the where we put formulas in the hypersequent will be more efficient.
 hypersequentUniversalModal _ _ _ BranchEnd = BranchEnd
@@ -527,11 +553,11 @@ hypersequentUniversalModal polarity test subformula (World sequent hypersequents
             gatherFormulas test (case polarity of
                                           Positive -> positiveFormulas
                                           Negative -> negativeFormulas)
-        atomicModalFormulas = filter atomicModalFormulaP relevantFormulas
+    --    atomicModalFormulas = filter atomicModalFormulaP relevantFormulas
         newSequent          =
             case polarity of
-              Positive -> makeSequent negativeFormulas (irrelevantFormulas ++ atomicModalFormulas)
-              Negative -> makeSequent (irrelevantFormulas ++ atomicModalFormulas) positiveFormulas
+              Positive -> makeSequent negativeFormulas irrelevantFormulas -- ++ atomicModalFormulas)
+              Negative -> makeSequent irrelevantFormulas  positiveFormulas--  ++ atomicModalFormulas) positiveFormulas
         recursiveHypersequents =
             map (hypersequentUniversalModal polarity test subformula) hypersequents
 
@@ -545,8 +571,6 @@ addAllFormulasToFirstWorlds polarity formulas hypersequents =
     foldl (\newHypersequents formula ->
                addFormulaToAllFirstWorlds polarity formula newHypersequents) hypersequents formulas
 
-
-
 addFormulaToAllFirstWorlds :: Polarity -> Formula -> [Hypersequent] -> [Hypersequent]
 addFormulaToAllFirstWorlds polarity formula hypersequents =
     map (addFormulaToFirstWorld polarity formula) hypersequents
@@ -555,6 +579,30 @@ addFormulaToFirstWorld :: Polarity -> Formula -> Hypersequent -> Hypersequent
 addFormulaToFirstWorld _ _ BranchEnd = BranchEnd
 addFormulaToFirstWorld polarity formula (World sequent hypersequents) =
     (World (addFormulaToSequentWithPolarity polarity formula sequent) hypersequents)
+
+addAllFormulasToAllWorlds :: Polarity -> Hypersequent -> [Formula] -> Hypersequent
+addAllFormulasToAllWorlds _ BranchEnd _ = BranchEnd
+addAllFormulasToAllWorlds polarity (World sequent [BranchEnd]) formulas = 
+  let  newSequent = addAllFormulasToSequent polarity sequent formulas 
+   in (World newSequent [BranchEnd])
+addAllFormulasToAllWorlds polarity (World sequent hypersequents) formulas = 
+   let recursiveHypersequents = map (\hypersequent -> addAllFormulasToAllWorlds polarity hypersequent formulas) hypersequents 
+       newSequent = addAllFormulasToSequent polarity sequent formulas 
+    in (World newSequent recursiveHypersequents) 
+
+addAllFormulasToSequent :: Polarity -> Sequent -> [Formula] -> Sequent
+addAllFormulasToSequent polarity sequent formulas = 
+ let relevantFormulas = case polarity of 
+                                Positive -> posFormulas sequent 
+                                Negative -> negFormulas sequent 
+     irrelevantFormulas = case polarity of 
+                                Positive -> negFormulas sequent 
+                                Negative -> posFormulas sequent 
+     newFormulas = relevantFormulas ++ formulas 
+     newSequent  = case polarity of 
+                        Positive -> makeSequent irrelevantFormulas newFormulas        
+                        Negative -> makeSequent newFormulas irrelevantFormulas     
+  in newSequent
 
 hypersequentRightNecessity :: Hypersequent -> Hypersequent
 hypersequentRightNecessity = hypersequentExistentialModal Positive necessityP necessity
