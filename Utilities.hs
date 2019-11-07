@@ -15,7 +15,8 @@ module Utilities
     , range
     , quickSort
     , snoc
-    , slowRemoveDuplicates) where
+    , slowRemoveDuplicates
+    , conjoinedWith) where
 
 import Control.Parallel
 import Control.Parallel.Strategies
@@ -139,6 +140,8 @@ slowRemoveDuplicates (x:xs) = if x `elem` xs
                               else x:slowRemoveDuplicates xs
 
 
+conjoinedWith :: (a  -> Bool) -> (a -> Bool) -> a -> Bool
+conjoinedWith f1 f2 item = f1 item && f2 item
 
 
 {-| Parallel Experiment |-}

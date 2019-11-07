@@ -6,6 +6,7 @@ module DepthFirstProver
     , proveK
     , proveT
     , prove4
+    , proveS4
 
     -- For Testsing
     , classicalLeftNegation
@@ -216,7 +217,7 @@ negationRuleByPolarity polarity sequents =
 
 {-| Modal Logic |-}
 
-data System = K | T | Four
+data System = K | T | Four | SFour
 
 type ModalProofTree = Tree Hypersequent
 
@@ -278,6 +279,7 @@ leafNodesContainModalCounterExampleP hypersequents system =
 --      K -> kCounterExampleInListP potentialCounterExamples
       T -> tCounterExampleInListP potentialCounterExamples
       Four -> fourCounterExampleInListP potentialCounterExamples
+      SFour -> sFourCounterExampleInListP potentialCounterExamples
       otherwise -> kCounterExampleInListP potentialCounterExamples
 
 --- CounterExamples For A System ---
@@ -309,6 +311,9 @@ tCounterExampleInListP = anyInListMeetsCriteria tCounterExampleP
 
 fourCounterExampleInListP :: [Hypersequent] -> Bool
 fourCounterExampleInListP = anyInListMeetsCriteria fourCounterExampleP
+
+sFourCounterExampleInListP :: [Hypersequent] -> Bool 
+sFourCounterExampleInListP = anyInListMeetsCriteria (conjoinedWith fourCounterExampleP tCounterExampleP)
 
 tCounterExampleP :: Hypersequent -> Bool
 tCounterExampleP BranchEnd = True
@@ -366,6 +371,9 @@ proveT formula = modalProve formula T
 
 prove4 :: Formula -> Bool
 prove4 formula = modalProve formula Four
+
+proveS4 :: Formula -> Bool 
+proveS4 formula = modalProve formula SFour
 
 modalProve :: Formula -> System -> Bool
 modalProve formula system =
@@ -485,10 +493,12 @@ makeNewHypersequent sequent hypersequentsList = map (World sequent) hypersequent
 --Modal Rules
 applyLeftNecessity :: System -> ModalProofTree -> ModalProofTree
 applyLeftNecessity Four tree  =  applyModalRule hypersequentFourLeftNecessity tree
+applyLeftNecessity SFour tree = applyModalRule hypersequentFourLeftNecessity tree 
 applyLeftNecessity system tree = applyModalRule hypersequentLeftNecessity tree
 
 applyRightPossibility :: System -> ModalProofTree -> ModalProofTree
 applyRightPossibility Four tree =  applyModalRule hypersequentFourRightPossibility tree
+applyRightPossibility SFour tree = applyModalRule hypersequentFourRightPossibility tree 
 applyRightPossibility system tree = applyModalRule hypersequentRightPossibility tree
 
 applyRightNecessity :: ModalProofTree -> ModalProofTree
@@ -642,8 +652,9 @@ hypersequentFold endFn worldFn (World seq hypersequents) =  worldFn seq (map (hy
 applyStructuralRules ::  System -> [ModalProofTree] -> [ModalProofTree]
 applyStructuralRules system proofTrees = case system of
                                            K    -> proofTrees
-                                           T    -> mapAppend contraction proofTrees
+                                           T    -> mapAppend contraction proofTrees 
                                            Four -> mapAppend weakening proofTrees
+                                           SFour -> (mapAppend contraction) . (mapAppend weakening) $ proofTrees
 
 -- Structural Rules Internals
 

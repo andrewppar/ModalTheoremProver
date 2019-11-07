@@ -61,6 +61,7 @@ allTests = [canonicalizerTest,
            weakenLevel1NodesTest,
            weakenLevel2NodesTest,
            prove4Test,
+           proveS4Test,
            generalizedConjunctionTest,
            generalizedDisjunctionTest,
            atomicNecessityPTest,
@@ -85,6 +86,7 @@ allTestsWithName = zip ["canonicalierTest",
                         "weakenLevel1NodesTest",
                         "weakenLevel2NodesTest",
                         "prove4Test",
+                        "proveS4Test",
                         "generalizedConjunctionTest",
                         "generalizedDisjunctionTest",
                         "atomicNecessityPTest",
@@ -301,7 +303,12 @@ propositionalProveTestCaseTable = [ ((Or [(AtomicFormula "p"), (Not (AtomicFormu
                         ((equiv (And [(AtomicFormula "p")]) (AtomicFormula "p")),
                          True),
                         ((Implies (Implies (Implies (AtomicFormula "p") (AtomicFormula "q")) (AtomicFormula "p")) (AtomicFormula "p")),
-                                                                                                                                                        True)
+                                                                                                                                                        True)  ,
+                     
+                      ((Implies (Implies (AtomicFormula "p") (Implies (AtomicFormula "q") (AtomicFormula "p"))) (AtomicFormula "p")), False) , 
+
+                      ((Implies (Implies (Implies (AtomicFormula "p") (AtomicFormula "q")) (AtomicFormula "p")) (AtomicFormula "p")), True)
+
                      ]
 
 proveKTest :: Bool
@@ -962,8 +969,111 @@ prove4TestCaseTable =
          (Implies
           (pos p )
           (pos q ))),
-        False)
+        False),
+
+ -- 5 Axiom
+
+     ((Implies
+        (pos p)
+        (nec 
+         (pos p))), False) , 
+
+-- B Axiom 
+  
+    ((Implies
+       p 
+       (nec 
+         (pos p))), False) , 
+
+    ((Implies 
+       p
+       p), True), 
+    
+    ((Implies (nec p) (nec (nec (nec (nec (nec (nec (nec p)))))))), True), 
+
+    ((nec (Implies (nec p) (nec (nec p)))), True)
        ]
+
+proveS4Test :: Bool
+proveS4Test =
+ testCaseTable proveS4 proveS4TestCaseTable
+
+
+proveS4TestVerbose :: IO ()
+proveS4TestVerbose =
+ testCaseTableVerbose proveS4 proveS4TestCaseTable
+
+proveS4TestCaseTable :: [(Formula,Bool)]
+proveS4TestCaseTable =
+    let p   = makeAtom "p"
+        q   = makeAtom "q"
+        nec = Necessarily
+        pos = Possibly
+    in
+      [
+       ((Implies
+         (nec p)
+         (nec (nec p))),
+        True),
+
+       ((Implies
+         (nec p)
+         (nec (nec (nec p)))),
+        True),
+
+      ((Implies
+        (pos (pos p))
+        (pos p)),
+       True),
+
+       ((Implies
+         (pos (pos (pos p)))
+         (pos p)),
+        True),
+
+       ((Implies
+         (nec p)
+         (nec (pos (nec p)))),
+        False), -- I think I saw this in Hardegree but there are counterexamples
+
+      ((Implies
+        (nec p)
+        p),
+       True),
+
+       ((Implies
+         (nec
+          (Implies p
+           (nec q)))
+         (Implies
+          (pos p )
+          (pos q ))),
+        True),
+
+ -- 5 Axiom
+
+     ((Implies
+        (pos p)
+        (nec 
+         (pos p))), False) , 
+
+-- B Axiom 
+  
+    ((Implies
+       p 
+       (nec 
+         (pos p))), False) , 
+
+    ((Implies 
+       p
+       p), True), 
+    
+    ((Implies (nec p) (nec (nec (nec (nec (nec (nec (nec p)))))))), True), 
+
+    ((nec (Implies (nec p) (nec (nec p)))), True)
+       ]
+
+
 
 makeAtomicSequentFromSequentTest :: Bool
 makeAtomicSequentFromSequentTest =
