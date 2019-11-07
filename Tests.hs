@@ -1010,7 +1010,90 @@ proveS4TestCaseTable =
         nec = Necessarily
         pos = Possibly
     in
-      [
+ [
+ -- 0
+       ((Implies
+         (nec p)
+         p),
+        True),
+
+       -- 1
+       ((Implies
+         p
+         (pos p)),
+        True),
+
+       -- 2
+       ((Implies
+         (nec (nec p))
+         p),
+        True),
+
+       -- 3
+       ((Implies
+         (nec p)
+         (nec (nec p))),
+         True),
+
+       -- 4
+       ((Implies
+         (pos
+          (Implies
+           p
+           (nec q)))
+         (Implies
+          (nec p)
+          (pos q))),
+        True),
+
+       -- 5
+       ((Implies
+         (nec
+          (Implies
+           p
+           (nec q)))
+          (Implies
+           (pos p)
+           (pos q))),
+        True),
+
+       -- 6
+       ((Implies
+        (Implies
+         (nec p)
+         (pos q))
+        (pos
+         (Implies
+          p
+          (pos q)))),
+        True),
+
+       -- 7
+       ((Implies
+         (Implies
+          (nec p)
+          (nec q))
+         (pos
+          (Implies
+           p
+           (pos q)))),
+        True),
+
+       -- 8
+       ((Implies
+         (nec (nec p))
+         (nec p)),
+        True),
+
+       -- 9
+       ((Implies
+         (nec p)
+         (pos p)),
+        True), 
+
+
+
+
        ((Implies
          (nec p)
          (nec (nec p))),
