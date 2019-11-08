@@ -654,7 +654,7 @@ applyStructuralRules system proofTrees = case system of
                                            K    -> proofTrees
                                            T    -> mapAppend contraction proofTrees 
                                            Four -> mapAppend weakening proofTrees
-                                           SFour -> (mapAppend contraction) . (mapAppend weakening) $ proofTrees
+                                           SFour -> mapAppend contraction proofTrees
 
 -- Structural Rules Internals
 
