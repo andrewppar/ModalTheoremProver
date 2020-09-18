@@ -1,9 +1,0 @@
-import Utilities
-import Formula
-import Canonicalizer
-import DepthFirstProver
-import Sequent
-import Tests
-
-
-main = runAllTestsVerbose

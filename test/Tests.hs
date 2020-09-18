@@ -61,9 +61,13 @@ allTests = [canonicalizerTest,
            weakenLevel1NodesTest,
            weakenLevel2NodesTest,
            prove4Test,
+           proveS4Test,
            generalizedConjunctionTest,
-           generalizedDisjunctionTest
+           generalizedDisjunctionTest,
+           atomicNecessityPTest,
+           atomicPossibilityPTest
            ]
+
 
 allTestsWithName :: [(String,Bool)]
 allTestsWithName = zip ["canonicalierTest",
@@ -83,8 +87,11 @@ allTestsWithName = zip ["canonicalierTest",
                         "weakenLevel1NodesTest",
                         "weakenLevel2NodesTest",
                         "prove4Test",
+                        "proveS4Test",
                         "generalizedConjunctionTest",
-                        "generalizedDisjunctionTest"
+                        "generalizedDisjunctionTest",
+                        "atomicNecessityPTest",
+                        "aotmicPossibilityPTest"
                         ]
                    allTests
 
@@ -240,6 +247,9 @@ propositionalProveTestCaseTable = [ ((Or [(AtomicFormula "p"), (Not (AtomicFormu
                          ((equiv (Not (Not (Not (AtomicFormula "a")))) (AtomicFormula "a")),
                           False),
 
+                         ((equiv (equiv (AtomicFormula "a") (Not (equiv (AtomicFormula "b") (Not (AtomicFormula "c")))))
+                                  (equiv (equiv (AtomicFormula "a") (Not (AtomicFormula "b"))) (Not (AtomicFormula "c")))), True) ,
+
 
                          ((equiv (AtomicFormula "a") (Or [(AtomicFormula "a"), (Not (AtomicFormula "a"))])),
                           False),
@@ -297,7 +307,12 @@ propositionalProveTestCaseTable = [ ((Or [(AtomicFormula "p"), (Not (AtomicFormu
                         ((equiv (And [(AtomicFormula "p")]) (AtomicFormula "p")),
                          True),
                         ((Implies (Implies (Implies (AtomicFormula "p") (AtomicFormula "q")) (AtomicFormula "p")) (AtomicFormula "p")),
-                                                                                                                                                        True)
+                                                                                                                                                        True)  ,
+                     
+                      ((Implies (Implies (AtomicFormula "p") (Implies (AtomicFormula "q") (AtomicFormula "p"))) (AtomicFormula "p")), False) , 
+
+                      ((Implies (Implies (Implies (AtomicFormula "p") (AtomicFormula "q")) (AtomicFormula "p")) (AtomicFormula "p")), True)
+
                      ]
 
 proveKTest :: Bool
@@ -958,8 +973,194 @@ prove4TestCaseTable =
          (Implies
           (pos p )
           (pos q ))),
-        False)
+        False),
+
+ -- 5 Axiom
+
+     ((Implies
+        (pos p)
+        (nec 
+         (pos p))), False) , 
+
+-- B Axiom 
+  
+    ((Implies
+       p 
+       (nec 
+         (pos p))), False) , 
+
+    ((Implies 
+       p
+       p), True), 
+    
+    ((Implies (nec p) (nec (nec (nec (nec (nec (nec (nec p)))))))), True), 
+
+    ((nec (Implies (nec p) (nec (nec p)))), True)
        ]
+
+proveS4Test :: Bool
+proveS4Test =
+ testCaseTable proveS4 proveS4TestCaseTable
+
+
+proveS4TestVerbose :: IO ()
+proveS4TestVerbose =
+ testCaseTableVerbose proveS4 proveS4TestCaseTable
+
+proveS4TestCaseTable :: [(Formula,Bool)]
+proveS4TestCaseTable =
+    let p   = makeAtom "p"
+        q   = makeAtom "q"
+        nec = Necessarily
+        pos = Possibly
+    in
+ [
+ -- 0
+       ((Implies
+         (nec p)
+         p),
+        True),
+
+       -- 1
+       ((Implies
+         p
+         (pos p)),
+        True),
+
+       -- 2
+       ((Implies
+         (nec (nec p))
+         p),
+        True),
+
+       -- 3
+       ((Implies
+         (nec p)
+         (nec (nec p))),
+         True),
+
+       -- 4
+       ((Implies
+         (pos
+          (Implies
+           p
+           (nec q)))
+         (Implies
+          (nec p)
+          (pos q))),
+        True),
+
+       -- 5
+       ((Implies
+         (nec
+          (Implies
+           p
+           (nec q)))
+          (Implies
+           (pos p)
+           (pos q))),
+        True),
+
+       -- 6
+       ((Implies
+        (Implies
+         (nec p)
+         (pos q))
+        (pos
+         (Implies
+          p
+          (pos q)))),
+        True),
+
+       -- 7
+       ((Implies
+         (Implies
+          (nec p)
+          (nec q))
+         (pos
+          (Implies
+           p
+           (pos q)))),
+        True),
+
+       -- 8
+       ((Implies
+         (nec (nec p))
+         (nec p)),
+        True),
+
+       -- 9
+       ((Implies
+         (nec p)
+         (pos p)),
+        True), 
+
+
+
+
+       ((Implies
+         (nec p)
+         (nec (nec p))),
+        True),
+
+       ((Implies
+         (nec p)
+         (nec (nec (nec p)))),
+        True),
+
+      ((Implies
+        (pos (pos p))
+        (pos p)),
+       True),
+
+       ((Implies
+         (pos (pos (pos p)))
+         (pos p)),
+        True),
+
+       ((Implies
+         (nec p)
+         (nec (pos (nec p)))),
+        False), -- I think I saw this in Hardegree but there are counterexamples
+
+      ((Implies
+        (nec p)
+        p),
+       True),
+
+       ((Implies
+         (nec
+          (Implies p
+           (nec q)))
+         (Implies
+          (pos p )
+          (pos q ))),
+        True),
+
+ -- 5 Axiom
+
+     ((Implies
+        (pos p)
+        (nec 
+         (pos p))), False) , 
+
+-- B Axiom 
+  
+    ((Implies
+       p 
+       (nec 
+         (pos p))), False) , 
+
+    ((Implies 
+       p
+       p), True), 
+    
+    ((Implies (nec p) (nec (nec (nec (nec (nec (nec (nec p)))))))), True), 
+
+    ((nec (Implies (nec p) (nec (nec p)))), True)
+       ]
+
+
 
 makeAtomicSequentFromSequentTest :: Bool
 makeAtomicSequentFromSequentTest =
@@ -1065,6 +1266,63 @@ generalizedDisjunctionTestCaseTable =
        False)]
 
 
+atomicNecessityPTest :: Bool
+atomicNecessityPTest =
+ testCaseTable atomicNecessityP atomicNecessityPTestCaseTable
+
+atomicNecessityPTestVerbose :: IO ()
+atomicNecessityPTestVerbose =
+ testCaseTableVerbose atomicNecessityP atomicNecessityPTestCaseTable
+
+atomicNecessityPTestCaseTable :: [(Formula,Bool)]
+atomicNecessityPTestCaseTable = let p = makeAtom "p"
+                                    q = makeAtom "q"
+                                    notP = (Not p)
+                                    notQ = (Not q)
+                                    andPQ = (And [p, q])
+                                    necP  = (Necessarily p)
+                                    necNotP = (Necessarily (Not p))
+                                    necPosP = (Necessarily (Possibly p))
+                                    necNecNotP = (nec necNotP)
+                                in
+                                  [(p, False),
+                                   (q, False),
+                                   (notP, False),
+                                   (notQ, False),
+                                   (andPQ, False),
+                                   (necP, True),
+                                   (necNotP, False),
+                                   (necPosP, False),
+                                   (necNecNotP, False)]
+
+atomicPossibilityPTest :: Bool
+atomicPossibilityPTest =
+ testCaseTable atomicPossibilityP atomicPossibilityPTestCaseTable
+
+atomicPossibilityPTestVerbose :: IO ()
+atomicPossibilityPTestVerbose =
+ testCaseTableVerbose atomicPossibilityP atomicPossibilityPTestCaseTable
+
+atomicPossibilityPTestCaseTable :: [(Formula,Bool)]
+atomicPossibilityPTestCaseTable = let p = makeAtom "p"
+                                      q = makeAtom "q"
+                                      notP = (Not p)
+                                      notQ = (Not q)
+                                      andPQ = (And [p, q])
+                                      posP  = (Possibly p)
+                                      posNotP = (Possibly (Not p))
+                                      posPosP = (Possibly (Possibly p))
+                                      posPosNotP = (pos posNotP)
+                                  in
+                                    [(p, False),
+                                     (q, False),
+                                     (notP, False),
+                                     (notQ, False),
+                                     (andPQ, False),
+                                     (posP, True),
+                                     (posNotP, False),
+                                     (posPosP, False),
+                                     (posPosNotP, False)]
 
 
 cartesianProductTest :: Bool

@@ -1,6 +1,7 @@
 module DepthFirstProver
     (PropProofTree (..)
     , Tree (..)
+    , System (..)
     , ProofTreeStatus (..)
     , propositionalProve
     , proveK
@@ -217,7 +218,7 @@ negationRuleByPolarity polarity sequents =
 
 {-| Modal Logic |-}
 
-data System = K | T | Four | SFour
+data System = K | T | Four | SFour deriving (Show)
 
 type ModalProofTree = Tree Hypersequent
 

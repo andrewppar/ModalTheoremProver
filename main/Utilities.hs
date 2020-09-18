@@ -14,14 +14,18 @@ module Utilities
     , replaceItemAtIndex
     , range
     , quickSort
-    , snoc) where
+    , snoc
+    , slowRemoveDuplicates
+    , splitStringAtFirst 
+    , conjoinedWith
+    , joinStrings) where
 
 import Control.Parallel
 import Control.Parallel.Strategies
 
 myTail :: [a] -> [a]
 myTail [] = []
-myTail (x:xs) = xs
+myTail (_:xs) = xs
 
 setIntersection :: (Eq a) => [a] -> [a] -> [a]
 setIntersection xs ys = foldr (\x acc -> if (elem x ys) then x:acc else acc) [] xs
@@ -130,6 +134,30 @@ quickSort sortingFunction (x:xs) =
     in smaller ++ (x:bigger)
 
 
+slowRemoveDuplicates :: (Eq a) => [a] -> [a]
+-- We need a sorting function to optimize this.
+slowRemoveDuplicates [] = []
+slowRemoveDuplicates (x:xs) = if x `elem` xs
+                              then slowRemoveDuplicates xs
+                              else x:slowRemoveDuplicates xs
+
+
+conjoinedWith :: (a  -> Bool) -> (a -> Bool) -> a -> Bool
+conjoinedWith f1 f2 item = f1 item && f2 item
+
+
+splitStringAtFirst :: Char -> String -> (String, String)
+splitStringAtFirst char [] = ([], [])
+splitStringAtFirst char (x:xs) = 
+  if x == char 
+     then ([], xs)
+  else 
+     let (first, second)  = splitStringAtFirst char xs 
+      in (x:first, second)
+
+joinStrings :: String -> [String] -> String
+joinStrings _ [] = " "
+joinStrings stringToInsert (x:xs) = x ++ (foldl (\string accumulator -> string ++ stringToInsert ++  accumulator) "" xs)
 
 
 {-| Parallel Experiment |-}

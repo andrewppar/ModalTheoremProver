@@ -45,6 +45,9 @@ testCaseTableVerbose function inputOutputPairs =
 ---------------- Run All Tests
 allTests :: [Bool]
 allTests = [canonicalizerTest,
+           formulaSetsEqualPTest, 
+           cleanFormulaStringTest,
+           parseFormulaTest, 
            proveTest,
            proofStatusTest,
            gatherConjunctionsTest,
@@ -68,8 +71,12 @@ allTests = [canonicalizerTest,
            atomicPossibilityPTest
            ]
 
+
 allTestsWithName :: [(String,Bool)]
 allTestsWithName = zip ["canonicalierTest",
+                        "formulaSetsEqualPTest", 
+                        "cleanFormulaStringTest",
+                        "parseFormulaTest", 
                         "proveTest",
                         "proofStatusTest",
                         "gatherConjunctionTest",
@@ -220,6 +227,66 @@ formulaSetsEqualPTestCaseTable =
          True)
         ]
 
+cleanFormulaStringTest :: Bool 
+cleanFormulaStringTest = 
+  testCaseTable cleanFormulaString cleanFormulaStringTestCaseTable 
+
+cleanFormulaStringTestVerbose :: IO ()
+cleanFormulaStringTestVerbose =
+  testCaseTableVerbose cleanFormulaString cleanFormulaStringTestCaseTable
+
+cleanFormulaStringTestCaseTable :: [(String, String)]
+cleanFormulaStringTestCaseTable = [("  a  ", "a")
+                                  , (" ( a b )", "(a b)")
+                                  , ("(   a (b cd) )", "(a (b cd))")
+                                  , (" ( ( a b) )", "((a b))")
+                                  , (" ( [a, b ,  c ] )", "([a, b , c])")
+                                ]
+
+getListItemsTest :: Bool 
+getListItemsTest = 
+  testCaseTable getListItems getListItemsTestCaseTable
+
+getListItemsTestVerbose :: IO ()
+getListItemsTestVerbose = 
+  testCaseTableVerbose getListItems getListItemsTestCaseTable
+
+getListItemsTestCaseTable :: [(String, [String])] 
+getListItemsTestCaseTable = [ ("[a, b]", ["a", "b"])
+                            , ("[(a, b), c]", ["(a, b)", "c"])
+                            , ("[ a , a , b, (c, [d, e])]"
+                              , ["a", "a", "b", "(c, [d, e])"])
+                            ]
+
+parseFormulaTest :: Bool
+parseFormulaTest = 
+  testCaseTable parseFormula parseFormulaTestCaseTable
+
+parseFormulaTestVerbose :: IO ()
+parseFormulaTestVerbose = 
+  testCaseTableVerbose parseFormula parseFormulaTestCaseTable 
+
+parseFormulaTestCaseTable :: [(String, Maybe Formula)]
+parseFormulaTestCaseTable = [ ("", Nothing)
+                            , (")", Nothing)
+                            , ("(a)", Nothing)
+                            , ("(AtomicFormula p)", Just (AtomicFormula "p"))
+                            , ("   (  Atomic Formula pq )", Nothing)
+                            , ("   ( AtomicFormula p q)", Nothing)
+                            , ("  ( AtomicFormula p1 )", Just (AtomicFormula "p1"))
+                            , (" ( And [(AtomicFormula p1)])"
+                              , Just (And [(AtomicFormula "p1")]))
+                            , (" (And p1)", Nothing)
+                            , (" (And (AtomicFormula p1))", Nothing)
+                            , (" (And [(AtomicFormula p1), (AtomicFormula p2)])"
+                              , Just (And [(AtomicFormula "p1") 
+                                          ,(AtomicFormula "p2")]))
+                            , (" (And [(AtomicFormula p1), (AtomicFormula p2]))", Nothing)
+                            , ("Implies p q", Nothing)
+                            , ("(Implies (AtomicFormula p) (Not (AtomicFormula q)))"
+                              , Just (Implies (AtomicFormula "p") (Not (AtomicFormula "q"))))
+                            , ("(Implies (L (Implies (AtomicFormula p) (AtomicFormula q))) (Implies (L (AtomicFormula p)) (L (AtomicFormula q))))" , Just (Implies (Necessarily (Implies (AtomicFormula "p") (AtomicFormula "q"))) (Implies (Necessarily (AtomicFormula "p")) (Necessarily (AtomicFormula "q")))))
+                            ]
 
 
 ------- Proof tests
