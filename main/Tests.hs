@@ -3,9 +3,6 @@ module Tests
     , runAllTestsVerbose)
     where
 
-main :: IO ()
-main = runAllTestsVerbose
-
 {-| Testing |-}
 
 import Utilities
@@ -14,7 +11,13 @@ import Canonicalizer
 import Sequent
 import Hypersequent
 import DepthFirstProver
+
 type Verbosity = String
+
+main :: IO ()
+main = runAllTestsVerbose
+
+
 
 testCase :: (Eq b) => (a -> b) -> a -> b -> Bool
 testCase f input output = (f input) == output
