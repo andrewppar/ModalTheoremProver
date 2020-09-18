@@ -4,13 +4,19 @@ import Canonicalizer
 import Sequent
 import Hypersequent
 import DepthFirstProver
+import Data.Maybe
 
 main :: IO ()
 main = 
     do 
       system  <- getSystem 
-      putStrLn . show $ system
       formula <- getFormula 
+      case system of 
+        K -> putStrLn . show . proveK $ formula
+        T -> putStrLn . show . proveT $ formula 
+        Four -> putStrLn . show . prove4 $ formula 
+        SFour -> putStrLn . show . proveS4 $ formula 
+      main
       
 
 getSystem :: IO(System) 
@@ -35,11 +41,13 @@ getSystem = do
 
       
 getFormula :: IO(Formula)      
-getFromula = do 
+getFormula = do 
   putStrLn "Enter a Formula: " 
   formulaString <- getLine
-  if parseAble formulaString
-    then return . parseFormula $ formulaString
-  else do 
-    putStrLn $ formulaString ++ " is not a parseableFormula. "
-    getFormula
+  let formula = parseFormula formulaString
+   in  if formula /= Nothing
+          then return . Data.Maybe.fromJust $ formula  
+        else do 
+          putStrLn $ formulaString ++ " is not a parsable into a formula." 
+--" Enter 'h' for a specification of parsable strings."  
+          getFormula

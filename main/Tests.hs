@@ -1,10 +1,3 @@
-module Tests
-    (runAllTests
-    , runAllTestsVerbose)
-    where
-
-{-| Testing |-}
-
 import Utilities
 import Formula
 import Canonicalizer
