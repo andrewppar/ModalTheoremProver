@@ -1,0 +1,7 @@
+* Add a way of serializing and exposing the proofs we generate
+** Add a way of serializing proofs
+** Add a way of serializing counterexamples
+** Add a way of converting proofs to latex 
+** Add a way of converting counterexamples to latex. 
+* Write an intuitionistic theorem prover
+** Add a way of translating propositional formulas into the S4 translation of intuitionistic logic. 
