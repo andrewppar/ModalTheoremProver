@@ -246,6 +246,9 @@ propositionalProveTestCaseTable = [ ((Or [(AtomicFormula "p"), (Not (AtomicFormu
                          ((equiv (Not (Not (Not (AtomicFormula "a")))) (AtomicFormula "a")),
                           False),
 
+                         ((equiv (equiv (AtomicFormula "a") (Not (equiv (AtomicFormula "b") (Not (AtomicFormula "c")))))
+                                  (equiv (equiv (AtomicFormula "a") (Not (AtomicFormula "b"))) (Not (AtomicFormula "c")))), True) ,
+
 
                          ((equiv (AtomicFormula "a") (Or [(AtomicFormula "a"), (Not (AtomicFormula "a"))])),
                           False),
