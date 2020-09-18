@@ -3,6 +3,8 @@ module Tests
     , runAllTestsVerbose)
     where
 
+main :: IO ()
+main = runAllTestsVerbose
 
 {-| Testing |-}
 
