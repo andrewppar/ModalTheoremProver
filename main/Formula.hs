@@ -22,6 +22,7 @@ module Formula
     , parseNecessityString
     , getTopLevelItems
     , getTopLevelItemsInternal
+    , splitFormulaWord
     ) where
 
 import Utilities
@@ -251,7 +252,6 @@ atomicPossibilityP = atomicModalPInt Possible
 
 atomicNecessityP :: Formula -> Bool
 atomicNecessityP = atomicModalPInt Necessary
-
 
 data ModalType = Possible | Necessary deriving (Eq)
 

@@ -16,6 +16,7 @@ main =
         T -> putStrLn . show . proveT $ formula 
         Four -> putStrLn . show . prove4 $ formula 
         SFour -> putStrLn . show . proveS4 $ formula 
+        Intuitionism -> putStrLn . show . proveIntuitionism $ formula
       main
       
 
@@ -27,6 +28,7 @@ getSystem = do
    putStrLn "[2] System T" 
    putStrLn "[3] System 4" 
    putStrLn "[4] System S4"
+   putStrLn "[5] Intuitionistic Logic"
    putStrLn ""
    system <- getLine 
    case system of 
@@ -34,6 +36,7 @@ getSystem = do
       "2" -> return T
       "3" -> return Four
       "4" -> return SFour 
+      "5" -> return Intuitionism
       otherwise -> 
          do
           putStrLn "Not a supported System"  

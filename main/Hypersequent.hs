@@ -15,20 +15,16 @@ import Formula
 import Canonicalizer
 import Sequent
 
-data Hypersequent = BranchEnd | World Sequent [Hypersequent] deriving (Eq, Show)
+data Hypersequent = BranchEnd | World Sequent [Hypersequent] deriving (Eq)
 -- We're not going to use the Tree structure because it is too overloaded even though this really is just a tree
 
---instance Show Hypersequent where
- --   show hypersequent = showHypersequent hypersequent 0
+instance Show Hypersequent where
+   show hypersequent = showHypersequent hypersequent 0
 
 showHypersequent :: Hypersequent -> Int -> String
-showHypersequent BranchEnd depth = (replicate depth ' ') ++ "B\n"
+showHypersequent BranchEnd depth = (replicate depth ' ') ++ "B"
 showHypersequent (World seq hypersequents) depth =
-    (replicate depth ' ') ++ (show seq ) ++ "\n" ++
-                              (joinStrings " " (map
-                                                (\hypersequent ->
-                                                     showHypersequent hypersequent (5+ depth))
-                                                hypersequents))
+  (show seq ) ++ "[ " ++ (joinStrings " ;  " (map (\hypersequent -> showHypersequent hypersequent 0) hypersequents)) ++" ]"
 
 everyInHypersequent :: (Sequent -> Bool) -> Hypersequent -> Bool
 everyInHypersequent _ BranchEnd = True

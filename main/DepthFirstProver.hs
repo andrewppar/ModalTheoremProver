@@ -8,6 +8,7 @@ module DepthFirstProver
     , proveT
     , prove4
     , proveS4
+    , proveIntuitionism
 
     -- For Testsing
     , classicalLeftNegation
@@ -25,9 +26,11 @@ module DepthFirstProver
 import Control.Parallel
 import Control.Parallel.Strategies
 import Data.Char
+import Data.Maybe
 import Debug.Trace
 import Utilities
 import Formula
+import IntuitionisticTranslator
 import Canonicalizer
 import Sequent
 import Hypersequent
@@ -218,7 +221,7 @@ negationRuleByPolarity polarity sequents =
 
 {-| Modal Logic |-}
 
-data System = K | T | Four | SFour deriving (Show)
+data System = K | T | Four | SFour | Intuitionism deriving (Show)
 
 type ModalProofTree = Tree Hypersequent
 
@@ -364,27 +367,36 @@ makeGroundHypersequentFromHypersequent (World sequent hypersequents) =
     (World (makeAtomicSequentFromSequent sequent)
                (map makeGroundHypersequentFromHypersequent hypersequents))
 
-proveK :: Formula -> Bool
+--proveK :: Formula -> ModalProofTree
 proveK formula = modalProve formula K
 
-proveT :: Formula -> Bool
+--proveT :: Formula -> ModalProofTree
 proveT formula = modalProve formula T
 
-prove4 :: Formula -> Bool
+--prove4 :: Formula -> ModalProofTree
 prove4 formula = modalProve formula Four
 
-proveS4 :: Formula -> Bool 
+--proveS4 :: Formula -> ModalProofTree
 proveS4 formula = modalProve formula SFour
 
-modalProve :: Formula -> System -> Bool
+--proveIntuitionism :: Formula -> ModalProofTree
+proveIntuitionism formula = 
+  let newFormula = intuitionisticTranslate formula
+   in if newFormula == Nothing 
+         then (Node emptyHypersequent [Leaf])
+--         then False
+      else proveS4 . Data.Maybe.fromJust $ newFormula
+
+--modalProve :: Formula -> System -> ModalProofTree
 modalProve formula system =
     let startingHypersequent = makeStartingHypersequent . canonicalizeFormula $ formula
         startingProofTree    = (Node startingHypersequent [Leaf])
         (relevantProofTree, status)
             = generateHypersequentProofTree [startingProofTree] system 0
-    in case status of
-         Proven -> True
-         otherwise -> False
+     in relevantProofTree
+--     in  case status of
+--           Proven -> True
+--           otherwise -> False
 
 generateHypersequentProofTree :: [ModalProofTree] -> System -> Int -> (ModalProofTree, ProofTreeStatus)
 -- We use lists of hypersequents because there are many ways of applying structural rules and we want to try them all.

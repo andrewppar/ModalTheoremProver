@@ -4,6 +4,7 @@ import Canonicalizer
 import Sequent
 import Hypersequent
 import DepthFirstProver
+import IntuitionisticTranslator
 
 type Verbosity = String
 
@@ -46,6 +47,7 @@ allTests = [canonicalizerTest,
            formulaSetsEqualPTest, 
            cleanFormulaStringTest,
            parseFormulaTest, 
+           intuitionisticTranslateTest, 
            proveTest,
            proofStatusTest,
            gatherConjunctionsTest,
@@ -63,6 +65,7 @@ allTests = [canonicalizerTest,
            weakenLevel2NodesTest,
            prove4Test,
            proveS4Test,
+           proveIntuitionismTest,
            generalizedConjunctionTest,
            generalizedDisjunctionTest,
            atomicNecessityPTest,
@@ -75,6 +78,7 @@ allTestsWithName = zip ["canonicalierTest",
                         "formulaSetsEqualPTest", 
                         "cleanFormulaStringTest",
                         "parseFormulaTest", 
+                        "intuitionisticTranslateTest", 
                         "proveTest",
                         "proofStatusTest",
                         "gatherConjunctionTest",
@@ -92,6 +96,7 @@ allTestsWithName = zip ["canonicalierTest",
                         "weakenLevel2NodesTest",
                         "prove4Test",
                         "proveS4Test",
+                        "proveIntuitionismTest", 
                         "generalizedConjunctionTest",
                         "generalizedDisjunctionTest",
                         "atomicNecessityPTest",
@@ -274,17 +279,39 @@ parseFormulaTestCaseTable = [ ("", Nothing)
                             , ("  ( AtomicFormula p1 )", Just (AtomicFormula "p1"))
                             , (" ( And [(AtomicFormula p1)])"
                               , Just (And [(AtomicFormula "p1")]))
-                            , (" (And p1)", Nothing)
+                            , (" (And p1)", Nothing) 
                             , (" (And (AtomicFormula p1))", Nothing)
                             , (" (And [(AtomicFormula p1), (AtomicFormula p2)])"
                               , Just (And [(AtomicFormula "p1") 
                                           ,(AtomicFormula "p2")]))
                             , (" (And [(AtomicFormula p1), (AtomicFormula p2]))", Nothing)
                             , ("Implies p q", Nothing)
+                            , ("(Implies (L (AtomicFormula p)) (AtomicFormula p))", Just (Implies (Necessarily p) p))
                             , ("(Implies (AtomicFormula p) (Not (AtomicFormula q)))"
                               , Just (Implies (AtomicFormula "p") (Not (AtomicFormula "q"))))
                             , ("(Implies (L (Implies (AtomicFormula p) (AtomicFormula q))) (Implies (L (AtomicFormula p)) (L (AtomicFormula q))))" , Just (Implies (Necessarily (Implies (AtomicFormula "p") (AtomicFormula "q"))) (Implies (Necessarily (AtomicFormula "p")) (Necessarily (AtomicFormula "q")))))
                             ]
+
+intuitionisticTranslateTest :: Bool 
+intuitionisticTranslateTest = 
+  testCaseTable intuitionisticTranslate intuitionisticTranslateTestCaseTable 
+
+intuitionisticTranslateTestVerbose :: IO ()
+intuitionisticTranslateTestVerbose = 
+  testCaseTableVerbose intuitionisticTranslate intuitionisticTranslateTestCaseTable 
+
+intuitionisticTranslateTestCaseTable :: [(Formula, Maybe Formula)]
+intuitionisticTranslateTestCaseTable = [ (p, Just (Necessarily p))
+                                       , ((Necessarily p) , Nothing) 
+                                       , ((And [p, q]), Just (And [(Necessarily p), (Necessarily q)]))
+                                       , ((Implies p q), Just (Necessarily (Implies (Necessarily p) (Necessarily q))))
+                                       , ((Or [p, (Not p)]), Just (Or [Necessarily p, (Necessarily (Not (Necessarily p)))]))
+                                       , ((Implies (Implies (Implies p q) p) p), Just (Necessarily (Implies (Necessarily (Implies (Necessarily (Implies (Necessarily p) (Necessarily q))) (Necessarily p))) (Necessarily p))))
+                                       , ((Not (Not (Or [p, (Not p)]))), Just (Necessarily (Not ( Necessarily (Not (Or [(Necessarily p), (Necessarily (Not (Necessarily p)))]))))))
+                                       , ((Implies (Not (Not p)) p), Just (Necessarily (Implies (Necessarily (Not (Necessarily (Not (Necessarily p))))) (Necessarily p))))
+                                        
+                                       ]
+
 
 
 ------- Proof tests
@@ -1223,6 +1250,24 @@ proveS4TestCaseTable =
 
     ((nec (Implies (nec p) (nec (nec p)))), True)
        ]
+
+proveIntuitionismTest :: Bool 
+proveIntuitionismTest = 
+  testCaseTable proveIntuitionism proveIntuitionismTestCaseTable
+
+proveIntuitionismTestVerbose :: IO ()
+proveIntuitionismTestVerbose = 
+  testCaseTableVerbose proveIntuitionism proveIntuitionismTestCaseTable
+
+proveIntuitionismTestCaseTable :: [(Formula, Bool)]
+proveIntuitionismTestCaseTable  = [((Or [p, (Not p)]), False)
+                                  , ((Implies (Implies (Implies p q) p) p), False)
+                                  , ((Not (Not (Or [p, (Not p)]))), True)
+                                  , ((Implies (Not (Not p)) p), False)
+                                  , ((Implies p (Not (Not p))), True) -- FAILING
+                                  , ((Not (And [p, (Not p)])), True)
+                                  , ((Necessarily p), False)
+                                  ]
 
 
 
