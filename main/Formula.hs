@@ -5,6 +5,7 @@ module Formula
     , makeAtom
     , atomicFormulaP
     , nonAtomicFormulaP
+    , implicationP
     , disjunctionP
     , conjunctionP
     , negationP
@@ -14,6 +15,7 @@ module Formula
     , atomicModalFormulaP
     , atomicPossibilityP
     , atomicNecessityP
+    , formulaLessThan
     -- For Testing 
     , cleanFormulaString
     , getListItems
@@ -22,10 +24,14 @@ module Formula
     , parseNecessityString
     , getTopLevelItems
     , getTopLevelItemsInternal
+    , sortFormulas
     ) where
 
 import Utilities
 import Data.Maybe 
+import Data.Char
+
+
  -- * Propositional Language
 data Formula = AtomicFormula {atom :: String}
              | And         {conjuncts :: [Formula]}
@@ -35,6 +41,116 @@ data Formula = AtomicFormula {atom :: String}
              | Possibly    {possibility :: Formula}
              | Necessarily {necessity :: Formula}
                deriving (Eq)
+
+instance Ord Formula where 
+  (<=) = formulaLessThanOrEqual 
+  (<) = formulaLessThan
+  x > y =  not (formulaLessThanOrEqual x y)
+  x >= y = not (formulaLessThan x  y)
+  max form1 form2 = if  (form1 < form2) then form2 else form1 
+  min form1 form2 = if  (form1 > form2) then form2 else form1
+
+sortFormulas :: [Formula] -> [Formula]
+sortFormulas = quickSort formulaLessThanOrEqual
+
+formulaLessThanOrEqual :: Formula -> Formula -> Bool
+formulaLessThanOrEqual formulaOne formulaTwo =
+    formulaOne == formulaTwo || formulaLessThan formulaOne formulaTwo
+
+formulaLessThan :: Formula -> Formula -> Bool
+formulaLessThan formulaOne formulaTwo =
+    let rankOne = formulaRank formulaOne
+        rankTwo = formulaRank formulaTwo
+     in if rankOne Prelude.< rankTwo
+        then True
+        else if rankOne == rankTwo
+             then complexFormulaLessThan formulaOne formulaTwo
+             else False
+
+formulaRank :: Formula -> Int
+formulaRank (Not negatum)      = 1 + (formulaRank negatum)
+formulaRank (Implies ant cons) = (formulaRank ant) + (formulaRank cons)
+formulaRank (And conjuncts)    = sum . (map formulaRank) $ conjuncts
+formulaRank (Or disjuncts)      = sum . (map formulaRank) $ disjuncts
+formulaRank (Necessarily necessity) = 1 + (formulaRank necessity)
+formulaRank (Possibly possibility) = 1 + (formulaRank possibility)
+formulaRank (AtomicFormula str) = 1
+
+stringLessThan :: String -> String -> Bool
+stringLessThan [] _ = True
+stringLessThan _ [] = False
+stringLessThan (x:xs) (y:ys) = if charLessThan x y
+                               then True
+                               else False 
+
+charLessThan :: Char -> Char -> Bool
+charLessThan c1 c2 =
+    let c1Number = alphabeticNumber alphabeticOrderAList c1
+        c2Number = alphabeticNumber alphabeticOrderAList c2
+    in c1Number < c2Number
+
+alphabeticNumber :: [(Char,Int)] -> Char -> Int
+alphabeticNumber [] char = 100
+alphabeticNumber ((testChar,int):alist) char = if char == testChar
+                                               then int
+                                               else alphabeticNumber alist char
+
+alphabeticOrderAList :: [(Char,Int)]
+alphabeticOrderAList =
+    let downcaseAlphabet = "abcdefghijklmnopqrstuvwxyz"
+        upcaseAlphabet   = map toUpper downcaseAlphabet
+        numbers          = "0123456789"
+        allChars         = append downcaseAlphabet (append upcaseAlphabet numbers)
+    in zip allChars [1..]
+
+complexFormulaLessThan :: Formula -> Formula -> Bool
+complexFormulaLessThan (AtomicFormula atomOne) (AtomicFormula atomTwo) =
+    stringLessThan atomOne atomTwo
+complexFormulaLessThan (AtomicFormula atom) _ = True
+complexFormulaLessThan (Not negatum1) (Not negatum2) = complexFormulaLessThan negatum1 negatum2
+complexFormulaLessThan (Not negatum1) _ = True
+
+complexFormulaLessThan (Implies ant1 con1) (Implies ant2 con2) = complexFormulaLessThan ant1 ant2
+complexFormulaLessThan (Implies ant con) (Not negatum) = False
+complexFormulaLessThan (Implies ant con) _ = True
+
+complexFormulaLessThan (And conjunctsOne) (And conjunctsTwo) =
+    compareJuncts conjunctsOne conjunctsTwo
+complexFormulaLessThan (And conjuncts) (Not negatum) = False
+complexFormulaLessThan (And conjuncts) (Implies ant con) = False
+complexFormulaLessThan (And conjuncts) _ = True
+
+complexFormulaLessThan (Or disjunctsOne) (Or disjunctsTwo) =
+    compareJuncts disjunctsOne disjunctsTwo
+complexFormulaLessThan (Or disjuncts) (Not negatum) = False
+complexFormulaLessThan (Or disjuncts) (Implies ant con) = False
+complexFormulaLessThan (Or disjuncts) (And conjuncts) = False
+complexFormulaLessThan (Or disjuncts) _ = True
+
+complexFormulaLessThan (Necessarily necessity1) (Necessarily necessity2) =
+    complexFormulaLessThan necessity1 necessity2
+complexFormulaLessThan (Necessarily necessity) (Not negatum) = False
+complexFormulaLessThan (Necessarily necessity) (Implies ant con) = False
+complexFormulaLessThan (Necessarily necessity) (And conjuncts) = False
+complexFormulaLessThan (Necessarily necessity) (Or disjuncts) = False
+complexFormulaLessThan (Necessarily necessity) _ = True
+
+complexFormulaLessThan (Possibly possibility1) (Possibly possibility2) =
+    complexFormulaLessThan possibility1 possibility2
+complexFormulaLessThan (Possibly possibility) (Not negatum) = False
+complexFormulaLessThan (Possibly possibility) (Implies ant con) = False
+complexFormulaLessThan (Possibly possibility) (And conjuncts) = False
+complexFormulaLessThan (Possibly possibility) (Or disjuncts) = False
+complexFormulaLessThan (Possibly possibility) (Necessarily necessity) = False
+complexFormulaLessThan (Possibly possibility) _ = True
+
+compareJuncts :: [Formula] -> [Formula] -> Bool
+compareJuncts conjunctsOne conjunctsTwo =
+    let sortedOne = sortFormulas conjunctsOne
+        sortedTwo = sortFormulas conjunctsTwo
+    in  compareListsByFunction complexFormulaLessThan sortedOne sortedTwo
+
+
 
 -- Showing Formulas
 
@@ -208,6 +324,10 @@ atomicFormulaP _ = False
 
 nonAtomicFormulaP :: Formula -> Bool
 nonAtomicFormulaP = not . atomicFormulaP
+
+implicationP :: Formula -> Bool 
+implicationP (Implies _ _) = True
+implicationP _ = False
 
 disjunctionP :: Formula -> Bool
 disjunctionP (Or _) = True

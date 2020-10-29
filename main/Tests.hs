@@ -3,12 +3,12 @@ import Formula
 import Canonicalizer
 import Sequent
 import Hypersequent
-import DepthFirstProver
+import Prover
 
 type Verbosity = String
 
 main :: IO ()
-main = runAllTestsVerbose
+main = intuitionisticProveTestVerbose
 
 
 
@@ -46,23 +46,15 @@ allTests = [canonicalizerTest,
            formulaSetsEqualPTest, 
            cleanFormulaStringTest,
            parseFormulaTest, 
-           proveTest,
-           proofStatusTest,
+           ----proveTest,
            gatherConjunctionsTest,
            addConjunctsTest,
-           classicalRightConjunctionTest,
-           classicalLeftDisjunctionTest,
-           classicalLeftConjunctionTest,
-           classicalLeftNegationTest,
            cartesianProductTest,
-           proveKTest,
-           contractRootNodeTest,
-           contractLevel1NodesTest,
-           proveTTest,
-           weakenLevel1NodesTest,
-           weakenLevel2NodesTest,
-           prove4Test,
-           proveS4Test,
+           --proveKTest,
+           --proveTTest,
+           --prove4Test,
+           --proveS4Test,
+           intuitionisticProveTest, 
            generalizedConjunctionTest,
            generalizedDisjunctionTest,
            atomicNecessityPTest,
@@ -75,27 +67,19 @@ allTestsWithName = zip ["canonicalierTest",
                         "formulaSetsEqualPTest", 
                         "cleanFormulaStringTest",
                         "parseFormulaTest", 
-                        "proveTest",
-                        "proofStatusTest",
+                        --"proveTest",
                         "gatherConjunctionTest",
                         "addConjunctsTest",
-                        "classicalRightConjunctionTest",
-                        "classicalLeftDisjunctionTest",
-                        "classicalLeftConjunctionTest",
-                        "classicalLeftNegation",
-                        "cartesianProductTest",
-                        "proveKTest",
-                        "contractRootNodeTest",
-                        "contractLevel1NodesTest",
-                        "proveTTest",
-                        "weakenLevel1NodesTest",
-                        "weakenLevel2NodesTest",
-                        "prove4Test",
-                        "proveS4Test",
+                        "cartesianProductTest" ,
+                        --"proveKTest",
+                        --"proveTTest",
+                        --"prove4Test",
+                        --"proveS4Test",
+                        "intuitionisticProveTest",
                         "generalizedConjunctionTest",
                         "generalizedDisjunctionTest",
                         "atomicNecessityPTest",
-                        "aotmicPossibilityPTest"
+                        "atomicPossibilityPTest"
                         ]
                    allTests
 
@@ -290,63 +274,63 @@ parseFormulaTestCaseTable = [ ("", Nothing)
 ------- Proof tests
 
 proveTest :: Bool
-proveTest = testCaseTable propositionalProve propositionalProveTestCaseTable
+proveTest = testCaseTable prove propositionalProveTestCaseTable
 
 proveTestVerbose :: IO ()
-proveTestVerbose = testCaseTableVerbose propositionalProve propositionalProveTestCaseTable
+proveTestVerbose = testCaseTableVerbose prove propositionalProveTestCaseTable
 
-propositionalProveTestCaseTable :: [(Formula,Bool)]
+propositionalProveTestCaseTable :: [(Formula, ProofTreeStatus)]
 propositionalProveTestCaseTable = [ ((Or [(AtomicFormula "p"), (Not (AtomicFormula "p"))]),
-                      True),
+                      Proved),
 
                        ((Not (And [(AtomicFormula "p"), (Not (AtomicFormula "p"))])),
-                      True),
+                      Proved),
 
                        ((And [(Implies (Not (AtomicFormula "a")) (Not (AtomicFormula "c"))), (Or [(Not (Not (AtomicFormula "a"))), (Not (AtomicFormula "c"))])]),
-                        False),
+                        CounterExample),
 
                          ((AtomicFormula "a"),
-                          False),
+                          CounterExample),
 
                          ((equiv (Not (Not (Not (AtomicFormula "a")))) (AtomicFormula "a")),
-                          False),
+                          CounterExample),
 
-                         ((equiv (equiv (AtomicFormula "a") (Not (equiv (AtomicFormula "b") (Not (AtomicFormula "c")))))
-                                  (equiv (equiv (AtomicFormula "a") (Not (AtomicFormula "b"))) (Not (AtomicFormula "c")))), True) ,
+                         --((equiv (equiv (AtomicFormula "a") (Not (equiv (AtomicFormula "b") (Not (AtomicFormula "c")))))
+                           --       (equiv (equiv (AtomicFormula "a") (Not (AtomicFormula "b"))) (Not (AtomicFormula "c")))), Proved) ,
 
 
-                         ((equiv (AtomicFormula "a") (Or [(AtomicFormula "a"), (Not (AtomicFormula "a"))])),
-                          False),
+                         --((equiv (AtomicFormula "a") (Or [(AtomicFormula "a"), (Not (AtomicFormula "a"))])),
+                         -- CounterExample),
 
                         ((Implies (AtomicFormula "a") (Or [(AtomicFormula "a"), (Not (AtomicFormula "a"))])),
-                                                                                                                              True),
+                                                                                                                              Proved),
 
                         ((equiv (Implies (Not (Implies (makeAtom "a") (makeAtom "c"))) (makeAtom "b"))
                                (Implies (makeAtom "a") (Implies (Not (makeAtom "b")) (makeAtom "c")))),
-                         True),
+                         Proved),
 
 
                         ((Or [(Or [(AtomicFormula "a"), (AtomicFormula "b")]), (Not (AtomicFormula "a"))]),
-                         True),
+                         Proved),
 
 
                        ((Implies (AtomicFormula "a") (AtomicFormula "a")),
-                       True),
+                       Proved),
 
                        ((Implies (And [(makeAtom "a"),
                                        (Implies (makeAtom "a") (makeAtom "b")),
                                        (Implies (makeAtom "b") (makeAtom "c"))])
                                  (makeAtom "c")),
-                        True),
+                        Proved),
 
                        ((equiv (equiv (makeAtom "p") (makeAtom "q")) (equiv (makeAtom "q") (makeAtom "p"))),
-                                                                                                                             True),
+                                                                                                                             Proved),
 
                        ((Implies (And [(Or [(makeAtom "p"), (makeAtom "q")]),
                                        (Implies (makeAtom "p") (Not(makeAtom "q")))])
                                  (Implies (Implies (makeAtom "p") (makeAtom "q"))
                                           (And [(makeAtom "q"), (Not (makeAtom "p"))]))),
-                        True),
+                        Proved),
 
 
                         ((And [(Implies (Not (Or [(AtomicFormula "a"), (AtomicFormula "b")]))
@@ -354,10 +338,10 @@ propositionalProveTestCaseTable = [ ((Or [(AtomicFormula "p"), (Not (AtomicFormu
                              (Implies (And [(Not (AtomicFormula "a")), (Not (AtomicFormula "b"))])
 
                                       (Not (Or [(AtomicFormula "a"), (AtomicFormula "b")])))]),
-                         True),
+                         Proved),
 
                         ((equiv (And [(AtomicFormula "a"), (AtomicFormula "b")]) (Not (Or [(Not (AtomicFormula "a")), (Not (AtomicFormula "b"))]))),
-                         True),
+                         Proved),
 
                         ((Implies
                           (And
@@ -366,26 +350,25 @@ propositionalProveTestCaseTable = [ ((Or [(AtomicFormula "p"), (Not (AtomicFormu
                             (makeAtom "TVAI-1"),
                             (Implies (makeAtom "D") (makeAtom "B"))])
                            (makeAtom "TVAI-2")),
-                         True),
+                         Proved),
 
                         ((equiv (And [(AtomicFormula "p")]) (AtomicFormula "p")),
-                         True),
-                        ((Implies (Implies (Implies (AtomicFormula "p") (AtomicFormula "q")) (AtomicFormula "p")) (AtomicFormula "p")),
-                                                                                                                                                        True)  ,
+                         Proved),
+                        ((Implies (Implies (Implies (AtomicFormula "p") (AtomicFormula "q")) (AtomicFormula "p")) (AtomicFormula "p")), Proved)  ,
                      
-                      ((Implies (Implies (AtomicFormula "p") (Implies (AtomicFormula "q") (AtomicFormula "p"))) (AtomicFormula "p")), False) , 
+                      ((Implies (Implies (AtomicFormula "p") (Implies (AtomicFormula "q") (AtomicFormula "p"))) (AtomicFormula "p")), CounterExample) , 
 
-                      ((Implies (Implies (Implies (AtomicFormula "p") (AtomicFormula "q")) (AtomicFormula "p")) (AtomicFormula "p")), True)
+                      ((Implies (Implies (Implies (AtomicFormula "p") (AtomicFormula "q")) (AtomicFormula "p")) (AtomicFormula "p")), Proved)
 
                      ]
 
 proveKTest :: Bool
-proveKTest = testCaseTable proveK proveKTestCaseTable
+proveKTest = testCaseTable prove proveKTestCaseTable
 
 proveKTestVerbose :: IO ()
-proveKTestVerbose = testCaseTableVerbose proveK proveKTestCaseTable
+proveKTestVerbose = testCaseTableVerbose prove proveKTestCaseTable
 
-proveKTestCaseTable :: [(Formula, Bool)]
+proveKTestCaseTable :: [(Formula, ProofTreeStatus)]
 proveKTestCaseTable = let atomP = makeAtom "p"
                           atomQ = makeAtom "q"
                           nec   = Necessarily
@@ -393,39 +376,39 @@ proveKTestCaseTable = let atomP = makeAtom "p"
                       in [
                        ((nec
                          (Or [(Not atomP), atomP])),
-                         True),
+                         Proved),
 
                        ((Implies
                           (nec (Implies atomP atomQ))
                           (Implies (nec atomP) (nec atomQ))),
-                        True),
+                        Proved),
 
                        ((Not (pos (And [(Not atomP), atomP]))),
-                         True),
+                         Proved),
 
                        ((Not (nec (Not (And [(Not atomP), atomP])))),
-                         False),
+                         CounterExample),
 
                        ((nec
                          (Implies atomP (Or [atomP, atomQ]))),
-                        True),
+                        Proved),
 
                        ((Implies
                          (nec atomP)
                          (nec (Or [atomP, atomQ]))),
-                        True),
+                        Proved),
 
                        ((nec
                          (equiv
                           (Not (nec atomP))
                           (pos (Not atomP)))),
-                        True),
+                        Proved),
 
                        ((nec
                          (equiv
                           (Not (pos atomP))
                           (nec (Not atomP)))),
-                        True),
+                        Proved),
 
                         ((Implies
                           (pos
@@ -433,25 +416,25 @@ proveKTestCaseTable = let atomP = makeAtom "p"
                           (Implies
                            (nec atomP)
                           (pos atomQ))),
-                        True),
+                        Proved),
 
                        ((Implies
                         (nec atomP)
                         (nec (Or [atomP, atomQ]))),
-                        True)
+                        Proved)
 
                          ]
 
 
 proveTTest :: Bool
 proveTTest =
- testCaseTable proveT proveTTestCaseTable
+ testCaseTable prove proveTTestCaseTable
 
 proveTTestVerbose :: IO ()
 proveTTestVerbose =
- testCaseTableVerbose proveT proveTTestCaseTable
+ testCaseTableVerbose prove proveTTestCaseTable
 
-proveTTestCaseTable :: [(Formula,Bool)]
+proveTTestCaseTable :: [(Formula, ProofTreeStatus)]
 proveTTestCaseTable =
     let p   = makeAtom "p"
         q   = makeAtom "q"
@@ -463,27 +446,21 @@ proveTTestCaseTable =
        ((Implies
          (nec p)
          p),
-        True),
+        Proved),
 
        -- 1
        ((Implies
          p
          (pos p)),
-        True),
+        Proved),
 
        -- 2
        ((Implies
          (nec (nec p))
          p),
-        True),
+        Proved), 
 
        -- 3
-       ((Implies
-         (nec p)
-         (nec (nec p))),
-         False),
-
-       -- 4
        ((Implies
          (pos
           (Implies
@@ -492,9 +469,9 @@ proveTTestCaseTable =
          (Implies
           (nec p)
           (pos q))),
-        True),
+       Proved),
 
-       -- 5
+       -- 4
        ((Implies
          (nec
           (Implies
@@ -503,9 +480,9 @@ proveTTestCaseTable =
           (Implies
            (pos p)
            (pos q))),
-        True),
+        Proved),
 
-       -- 6
+       -- 5
        ((Implies
         (Implies
          (nec p)
@@ -514,9 +491,9 @@ proveTTestCaseTable =
          (Implies
           p
           (pos q)))),
-        True),
+        Proved),
 
-       -- 7
+       -- 6
        ((Implies
          (Implies
           (nec p)
@@ -525,47 +502,22 @@ proveTTestCaseTable =
           (Implies
            p
            (pos q)))),
-        True),
+        Proved),
 
-       -- 8
+       -- 7
        ((Implies
          (nec (nec p))
          (nec p)),
-        True),
+        Proved),
 
-       -- 9
+       -- 8
        ((Implies
          (nec p)
          (pos p)),
-        True)
+        Proved)
 
 
       ]
-
----- Utility Tests
-
-proofStatusTest :: Bool
-proofStatusTest = testCaseTable proofStatusSum proofStatusTestCaseTable
-
-proofStatusTestVerbose :: IO ()
-proofStatusTestVerbose =
-    testCaseTableVerbose proofStatusSum proofStatusTestCaseTable
-
-
-
-proofStatusTestCaseTable :: [([ProofTreeStatus],ProofTreeStatus)]
-proofStatusTestCaseTable = [
- ([Proven, Proven, Proven],
-                          Proven),
- ([Proven, NotProven, Proven, Proven, Proven],
-                                             NotProven),
- ([Proven, NotProven, Proven, NotProven, CounterExampleGenerated],
-                                                                 CounterExampleGenerated),
- ([Proven, NotProven, CounterExampleGenerated, Proven, NotProven],
-                                                                 CounterExampleGenerated),
- ([CounterExampleGenerated, Proven, NotProven, Proven, NotProven],
-                                                                 CounterExampleGenerated)]
-
 
 gatherConjunctionsTest :: Bool
 gatherConjunctionsTest =
@@ -675,324 +627,18 @@ addConjunctsTestCaseTable =
          (makeSequent [] [q,r])])
       ]
 
-
-classicalRightConjunctionTest :: Bool
-classicalRightConjunctionTest =
- testCaseTable classicalRightConjunction classicalRightConjunctionTestCaseTable
-
-classicalRightConjunctionTestVerbose :: IO ()
-classicalRightConjunctionTestVerbose =
- testCaseTableVerbose classicalRightConjunction classicalRightConjunctionTestCaseTable
-
-classicalRightConjunctionTestCaseTable :: [([Sequent],[Sequent])]
-classicalRightConjunctionTestCaseTable =
-     let p = makeAtom "p"
-         q = makeAtom "q"
-         r = makeAtom "r"
-         s = makeAtom "s"
-         t = makeAtom "t"
-         u = makeAtom "u"
-         v = makeAtom "v"
-         w = makeAtom "w"
-         andPQ = (And [p,q])
-         andRS = (And [r,s])
-         testSequent1 = makeSequent [t] [u, andPQ]
-         testSequent2 = makeSequent [v] [w]
-         testSequent3 = makeSequent [v] [w, andRS]
-         testSequent4 = makeSequent [v, andRS] [w]
-         resultSequent1 = makeSequent [t] [p,u]
-         resultSequent2 = makeSequent [t] [q,u]
-     in [([testSequent1],
-         [(makeSequent [t] [p,u]),
-          (makeSequent [t] [q,u])]),
-
-         ([testSequent1, testSequent2],
-          [testSequent2,
-           resultSequent1,
-           resultSequent2]),
-
-         ([testSequent1, testSequent3],
-          [(makeSequent [v] [r,w]),
-           (makeSequent [v] [s,w]),
-           resultSequent1,
-           resultSequent2
-           ]),
-
-         ([testSequent2, testSequent4],
-          [testSequent4, testSequent2])
-         ]
-
-classicalLeftDisjunctionTest :: Bool
-classicalLeftDisjunctionTest =
- testCaseTable classicalLeftDisjunction classicalLeftDisjunctionTestCaseTable
-
-classicalLeftDisjunctionTestVerbose :: IO ()
-classicalLeftDisjunctionTestVerbose =
- testCaseTableVerbose classicalLeftDisjunction classicalLeftDisjunctionTestCaseTable
-
-classicalLeftDisjunctionTestCaseTable :: [([Sequent],[Sequent])]
-classicalLeftDisjunctionTestCaseTable =
-     let p = makeAtom "p"
-         q = makeAtom "q"
-         r = makeAtom "r"
-         s = makeAtom "s"
-         t = makeAtom "t"
-         u = makeAtom "u"
-         v = makeAtom "v"
-         w = makeAtom "w"
-         orPQ = (Or [p,q])
-         orRS = (Or [r,s])
-         testSequent1 = makeSequent [t, orPQ] [u]
-         testSequent2 = makeSequent [v] [w]
-         testSequent3 = makeSequent [v, orRS] [w]
-         testSequent4 = makeSequent [v] [w, orRS]
-         resultSequent1 = makeSequent [p,t] [u]
-         resultSequent2 = makeSequent [q,t] [u]
-     in [([testSequent1],
-         [resultSequent1,
-          resultSequent2]),
-
-         ([testSequent1, testSequent2],
-          [testSequent2,
-           resultSequent1,
-           resultSequent2]),
-
-         ([testSequent1, testSequent3],
-          [(makeSequent [r,v] [w]),
-           (makeSequent [s,v] [w]),
-           resultSequent1,
-           resultSequent2
-           ]),
-
-         ([testSequent2, testSequent4],
-          [testSequent4, testSequent2])
-         ]
-
-classicalLeftConjunctionTest :: Bool
-classicalLeftConjunctionTest =
- testCaseTable classicalLeftConjunction classicalLeftConjunctionTestCaseTable
-
-classicalLeftConjunctionTestVerbose :: IO ()
-classicalLeftConjunctionTestVerbose =
- testCaseTableVerbose classicalLeftConjunction classicalLeftConjunctionTestCaseTable
-
-classicalLeftConjunctionTestCaseTable :: [([Sequent],[Sequent])]
-classicalLeftConjunctionTestCaseTable =
-     let p = makeAtom "p"
-         q = makeAtom "q"
-         r = makeAtom "r"
-         s = makeAtom "s"
-         t = makeAtom "t"
-         u = makeAtom "u"
-         v = makeAtom "v"
-         w = makeAtom "w"
-         andPQ = (And [p,q])
-         andRS = (And [r,s])
-         testSequent1 = makeSequent [t, andPQ] [u]
-         testSequent2 = makeSequent [v] [w, andPQ]
-         testSequent3 = makeSequent [v, andRS] [w]
-         resultSequent1 = makeSequent [t,p,q] [u]
-         resultSequent2 = makeSequent [v,r,s] [w]
-     in [([testSequent1],
-         [resultSequent1]),
-
-         ([testSequent1, testSequent2],
-          [resultSequent1,
-           testSequent2]),
-
-         ([testSequent1, testSequent3],
-          [resultSequent1,
-           resultSequent2
-           ])]
-
-classicalLeftNegationTest :: Bool
-classicalLeftNegationTest =
- testCaseTable classicalLeftNegation classicalLeftNegationTestCaseTable
-
-classicalLeftNegationTestVerbose :: IO ()
-classicalLeftNegationTestVerbose =
- testCaseTableVerbose classicalLeftNegation classicalLeftNegationTestCaseTable
-
-classicalLeftNegationTestCaseTable :: [([Sequent],[Sequent])]
-classicalLeftNegationTestCaseTable =
-    let p = makeAtom "p"
-        q = makeAtom "q"
-        r = makeAtom "r"
-        s = makeAtom "s"
-        notP = Not p
-        notQ = Not q
-        testSequent1 = makeSequent [r, notP] [s]
-        testSequent2 = makeSequent [r]       [s, notP]
-        testSequent3 = makeSequent [r, notP, notQ] [s]
-        testSequent4 = makeSequent [r, notP] [s, notQ]
-        testSequent5 = makeSequent [r, notP] []
-        resultSequent1 = makeSequent [r] [s,p]
-    in [
-     ([testSequent1],
-      [resultSequent1]),
-
-    ([testSequent2],
-     [testSequent2]),
-
-    ([testSequent3],
-     [(makeSequent [r] [s,q,p])]),
-
-    ([testSequent1, testSequent2],
-     [resultSequent1, testSequent2]),
-
-    ([testSequent4],
-     [(makeSequent [r] [s,notQ,p])]),
-
-    ([testSequent5],
-     [(makeSequent [r] [p])])
-    ]
-
-contractRootNodeTest :: Bool
-contractRootNodeTest =
- testCaseTable contractRootNode contractRootNodeTestCaseTable
-
-contractRootNodeTestVerbose :: IO ()
-contractRootNodeTestVerbose =
- testCaseTableVerbose contractRootNode contractRootNodeTestCaseTable
-
-contractRootNodeTestCaseTable :: [(Hypersequent,Hypersequent)]
-contractRootNodeTestCaseTable =
-     let a = makePositiveSequent p
-         b = makePositiveSequent q
-         c = makePositiveSequent (Implies p q)
-         d = makePositiveSequent (Or [p,q])
-         hyperInput = (World a
-                       [(World c [BranchEnd]),
-                        (World b
-                         [(World d [BranchEnd])])])
-         hyperResult = (World a
-                        [(World a [BranchEnd]),
-                         (World c [BranchEnd]),
-                         (World b
-                          [(World d [BranchEnd])])])
-     in [(hyperInput, hyperResult),
-         ((World a [BranchEnd]),
-          (World a [(World a [BranchEnd])]))]
-
-contractLevel1NodesTest :: Bool
-contractLevel1NodesTest =
- testCaseTable contractLevel1Nodes contractLevel1NodesTestCaseTable
-
-contractLevel1NodesTestVerbose :: IO ()
-contractLevel1NodesTestVerbose =
- testCaseTableVerbose contractLevel1Nodes contractLevel1NodesTestCaseTable
-
-contractLevel1NodesTestCaseTable :: [(Hypersequent,[Hypersequent])]
-contractLevel1NodesTestCaseTable =
-      let a = makePositiveSequent p
-          b = makePositiveSequent q
-          c = makePositiveSequent (Implies p q)
-          d = makePositiveSequent (Or [p,q])
-          hyperInput = (World a
-                        [(World c [BranchEnd]),
-                         (World b
-                          [(World d [BranchEnd])])])
-          hyperResult = [(World a
-                          [(World c
-                            [(World c [BranchEnd])]),
-                           (World b
-                            [(World d [BranchEnd])])]),
-                         (World a
-                          [(World c [BranchEnd]),
-                           (World b
-                            [(World b [BranchEnd]),
-                             (World d [BranchEnd])])])]
-      in [(hyperInput, hyperResult),
-
-          ((World a
-           [(World b [BranchEnd]), (World c [BranchEnd]), (World d [BranchEnd])]),
-
-           [(World a
-           [(World b
-             [(World b [BranchEnd])]),
-            (World c
-             [BranchEnd]),
-            (World d
-             [BranchEnd])]),
-           (World a
-           [(World b
-             [BranchEnd]),
-            (World c
-             [(World c [BranchEnd])]),
-            (World d
-             [BranchEnd])]),
-          (World a
-           [(World b
-             [BranchEnd]),
-            (World c
-             [BranchEnd]),
-            (World d
-             [(World d [BranchEnd])])])])
-         ]
-
-weakenLevel1NodesTest :: Bool
-weakenLevel1NodesTest =
- testCaseTable weakenLevel1Nodes weakenLevel1NodesTestCaseTable
-
-weakenLevel1NodesTestVerbose :: IO ()
-weakenLevel1NodesTestVerbose =
- testCaseTableVerbose weakenLevel1Nodes weakenLevel1NodesTestCaseTable
-
-weakenLevel1NodesTestCaseTable :: [(Hypersequent,[Hypersequent])]
-weakenLevel1NodesTestCaseTable =
-    let a = makePositiveSequent p
-        b = makePositiveSequent q
-        c = makePositiveSequent (Implies p q)
-        d = makePositiveSequent (Or [p,q])
-        inputHypersequent = (World a
-                                   [(World emptySequent
-                                               [(World b [BranchEnd])]),
-                                    (World c [BranchEnd])])
-   in [(inputHypersequent,
-       [inputHypersequent, (World a
-              [(World b [BranchEnd]),
-               (World c [BranchEnd])])])]
-
-weakenLevel2NodesTest :: Bool
-weakenLevel2NodesTest =
- testCaseTable weakenLevel2Nodes weakenLevel2NodesTestCaseTable
-
-weakenLevel2NodesTestVerbose :: IO ()
-weakenLevel2NodesTestVerbose =
- testCaseTableVerbose weakenLevel2Nodes weakenLevel2NodesTestCaseTable
-
-weakenLevel2Nodes :: Hypersequent -> [Hypersequent]
-weakenLevel2Nodes = weakenLevelNNodes 2
-
-weakenLevel2NodesTestCaseTable :: [(Hypersequent,[Hypersequent])]
-weakenLevel2NodesTestCaseTable =
-    let a = makePositiveSequent p
-        b = makePositiveSequent q
-        c = makePositiveSequent (Implies p q)
-        d = makePositiveSequent (Or [p,q])
-        hyperInput = (World a
-                      [(World emptySequent
-                                  [(World emptySequent [(World b [BranchEnd])])]),
-                       (World c [BranchEnd])])
-    in [(hyperInput,
-                       [hyperInput,
-                                      (World a [(World emptySequent
-                                                           [(World b [BranchEnd])]),
-                                                (World c [BranchEnd])])])]
-
-
 prove4Test :: Bool
 prove4Test =
- testCaseTable prove4 prove4TestCaseTable
+ testCaseTable prove prove4TestCaseTable
 
 -- It's awesome that this is failing. The reason that it's failing is because we are too eagerly applying propositional rules. When we enforce that we have to weaken and then apply modal rules, we end up making wewakening worthless. The point of weaknening is that we can wait a little while  before collapsing any empty sequents. We need the computer to do some waiting.
 
 
 prove4TestVerbose :: IO ()
 prove4TestVerbose =
- testCaseTableVerbose prove4 prove4TestCaseTable
+ testCaseTableVerbose prove prove4TestCaseTable
 
-prove4TestCaseTable :: [(Formula,Bool)]
+prove4TestCaseTable :: [(Formula, ProofTreeStatus)]
 prove4TestCaseTable =
     let p   = makeAtom "p"
         q   = makeAtom "q"
@@ -1003,75 +649,56 @@ prove4TestCaseTable =
        ((Implies
          (nec p)
          (nec (nec p))),
-        True),
+        Proved),
 
        ((Implies
          (nec p)
          (nec (nec (nec p)))),
-        True),
+        Proved),
 
       ((Implies
         (pos (pos p))
         (pos p)),
-       True),
+       Proved),
 
        ((Implies
          (pos (pos (pos p)))
          (pos p)),
-        True),
-
-       ((Implies
-         (nec p)
-         (nec (pos (nec p)))),
-        False), -- I think I saw this in Hardegree but there are counterexamples
-
-      ((Implies
-        (nec p)
-        p),
-       False),
-
-       ((Implies
-         (nec
-          (Implies p
-           (nec q)))
-         (Implies
-          (pos p )
-          (pos q ))),
-        False),
+        Proved),
 
  -- 5 Axiom
 
      ((Implies
         (pos p)
         (nec 
-         (pos p))), False) , 
+         (pos p))), CounterExample) , 
 
 -- B Axiom 
   
     ((Implies
        p 
        (nec 
-         (pos p))), False) , 
+         (pos p))), CounterExample) , 
 
     ((Implies 
        p
-       p), True), 
+       p), Proved), 
     
-    ((Implies (nec p) (nec (nec (nec (nec (nec (nec (nec p)))))))), True), 
+    ((Implies (nec p) (nec (nec (nec (nec (nec (nec (nec p)))))))), Proved), 
 
-    ((nec (Implies (nec p) (nec (nec p)))), True)
+    ((nec (Implies (nec p) (nec (nec p)))), Proved)
        ]
 
 proveS4Test :: Bool
 proveS4Test =
- testCaseTable proveS4 proveS4TestCaseTable
+ testCaseTable prove proveS4TestCaseTable
 
 
 proveS4TestVerbose :: IO ()
 proveS4TestVerbose =
- testCaseTableVerbose proveS4 proveS4TestCaseTable
+ testCaseTableVerbose prove proveS4TestCaseTable
 
-proveS4TestCaseTable :: [(Formula,Bool)]
+proveS4TestCaseTable :: [(Formula, ProofTreeStatus)]
 proveS4TestCaseTable =
     let p   = makeAtom "p"
         q   = makeAtom "q"
@@ -1083,25 +710,25 @@ proveS4TestCaseTable =
        ((Implies
          (nec p)
          p),
-        True),
+        Proved),
 
        -- 1
        ((Implies
          p
          (pos p)),
-        True),
+        Proved),
 
        -- 2
        ((Implies
          (nec (nec p))
          p),
-        True),
+        Proved),
 
        -- 3
        ((Implies
          (nec p)
          (nec (nec p))),
-         True),
+         Proved),
 
        -- 4
        ((Implies
@@ -1112,7 +739,7 @@ proveS4TestCaseTable =
          (Implies
           (nec p)
           (pos q))),
-        True),
+        Proved),
 
        -- 5
        ((Implies
@@ -1123,7 +750,7 @@ proveS4TestCaseTable =
           (Implies
            (pos p)
            (pos q))),
-        True),
+        Proved),
 
        -- 6
        ((Implies
@@ -1134,7 +761,7 @@ proveS4TestCaseTable =
          (Implies
           p
           (pos q)))),
-        True),
+        Proved),
 
        -- 7
        ((Implies
@@ -1145,52 +772,49 @@ proveS4TestCaseTable =
           (Implies
            p
            (pos q)))),
-        True),
+        Proved),
 
        -- 8
        ((Implies
          (nec (nec p))
          (nec p)),
-        True),
+        Proved),
 
        -- 9
        ((Implies
          (nec p)
-         (pos p)),
-        True), 
-
-
-
+         (pos p)), 
+        Proved),
 
        ((Implies
          (nec p)
          (nec (nec p))),
-        True),
+        Proved),
 
        ((Implies
          (nec p)
          (nec (nec (nec p)))),
-        True),
+        Proved),
 
       ((Implies
         (pos (pos p))
         (pos p)),
-       True),
+       Proved),
 
        ((Implies
          (pos (pos (pos p)))
          (pos p)),
-        True),
+        Proved),
 
        ((Implies
          (nec p)
          (nec (pos (nec p)))),
-        False), -- I think I saw this in Hardegree but there are counterexamples
+        Proved),
 
       ((Implies
         (nec p)
         p),
-       True),
+       Proved),
 
        ((Implies
          (nec
@@ -1199,31 +823,50 @@ proveS4TestCaseTable =
          (Implies
           (pos p )
           (pos q ))),
-        True),
+        Proved),
 
  -- 5 Axiom
 
      ((Implies
         (pos p)
         (nec 
-         (pos p))), False) , 
+         (pos p))), CounterExample) , 
 
 -- B Axiom 
   
     ((Implies
        p 
        (nec 
-         (pos p))), False) , 
+         (pos p))), CounterExample) , 
 
     ((Implies 
        p
-       p), True), 
+       p), Proved), 
     
-    ((Implies (nec p) (nec (nec (nec (nec (nec (nec (nec p)))))))), True), 
+    ((Implies (nec p) (nec (nec (nec (nec (nec (nec (nec p)))))))), Proved), 
 
-    ((nec (Implies (nec p) (nec (nec p)))), True)
+    ((nec (Implies (nec p) (nec (nec p)))), Proved)
        ]
 
+intuitionisticProveTest :: Bool 
+intuitionisticProveTest = 
+  testCaseTable prove intuitionisticProveTestCaseTable
+
+intuitionisticProveTestVerbose :: IO()
+intuitionisticProveTestVerbose = 
+  testCaseTableVerbose prove intuitionisticProveTestCaseTable
+
+intuitionisticProveTestCaseTable :: [(Formula, ProofTreeStatus)]
+intuitionisticProveTestCaseTable =  
+  [
+    ((Or [p, (Not p)]), CounterExample)
+  , ((Implies (Implies (Implies p q) p) p), CounterExample)
+  , ((Not (Not (Or [p, (Not p)]))), Proved)
+  , ((Implies (Not (Not p)) p), CounterExample)
+  , ((Implies p (Not (Not p))), Proved) -- FAILING
+  , ((Not (And [p, (Not p)])), Proved)
+  , ((Necessarily p), CounterExample)
+  ]
 
 
 makeAtomicSequentFromSequentTest :: Bool
@@ -1398,10 +1041,10 @@ cartesianProductTestVerbose = testCaseTableVerbose cartesianProduct cartesianPro
 cartesianProductTestCaseTable :: [([[Int]],[[Int]])]
 cartesianProductTestCaseTable = [
  ([[1,2],[3,4]],
-  [[1,3],[2,3],[1,4],[2,4]]),
+  [[1,3],[1,4],[2,3],[2,4]]),
 
  ([[1,2,3], [4,5], [6]],
-  [[1,4,6], [2,4,6], [3,4,6], [1,5,6], [2,5,6], [3,5,6]]),
+ [[1,4,6],[1,5,6],[2,4,6],[2,5,6],[3,4,6],[3,5,6]]),
 
  ([[1,2], [3]],
   [[1,3], [2,3]])
@@ -1416,5 +1059,3 @@ pos = Possibly
 ax  = (Implies
        (nec p)
        (nec (nec  p)))
-startingHypersequent = makeStartingHypersequent . canonicalizeFormula $ ax
-startingProofTree    = (Node startingHypersequent [Leaf])

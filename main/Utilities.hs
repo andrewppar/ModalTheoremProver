@@ -2,6 +2,7 @@ module Utilities
     (myTail
     , setIntersection
     , emptyListP
+    , some
     , append
     , mapAppend
     , generalizedConjunction
@@ -18,7 +19,11 @@ module Utilities
     , slowRemoveDuplicates
     , splitStringAtFirst 
     , conjoinedWith
-    , joinStrings) where
+    , joinStrings
+    , makePrefix
+    , setsEqual
+    , compareListsByFunction
+    ) where
 
 import Control.Parallel
 import Control.Parallel.Strategies
@@ -33,6 +38,16 @@ setIntersection xs ys = foldr (\x acc -> if (elem x ys) then x:acc else acc) [] 
 emptyListP :: [a] -> Bool
 emptyListP [] = True
 emptyListP _  = False
+
+some :: (a -> Bool) -> [a] -> Bool
+some f items = someItemsTrue . map f $ items
+
+someItemsTrue :: [Bool] -> Bool 
+someItemsTrue [] = False
+someItemsTrue (x:xs) = 
+  if x 
+     then True 
+     else someItemsTrue xs
 
 append :: [a] -> [a] -> [a]
 append xs ys = foldr (\x acc -> x:acc) ys xs -- @note: this reverses the order of the xs
@@ -69,11 +84,15 @@ addEachToEachInList xs (y:ys) =
 
 
 cartesianProduct :: [[a]] -> [[a]]  -- @todo make this recursive
-cartesianProduct [] = []
-cartesianProduct [xs] = map (\x -> [x]) xs
-cartesianProduct (x:xs) =
-    let recursiveCase = cartesianProduct xs
-    in addToEach x recursiveCase
+cartesianProduct [] =  [] 
+cartesianProduct [x] = map (\y -> [y])  x
+cartesianProduct (firstList:lists) = 
+  let recursiveCase = cartesianProduct lists
+   in foldr (\item result -> 
+     let intermediateResult = 
+           foldr (\list acc -> (item:list):acc) [] recursiveCase
+      in intermediateResult ++ result) [] firstList
+
 
 addToEach :: [a] -> [[a]] -> [[a]]
 addToEach _ [] = []
@@ -159,6 +178,21 @@ joinStrings :: String -> [String] -> String
 joinStrings _ [] = " "
 joinStrings stringToInsert (x:xs) = x ++ (foldl (\string accumulator -> string ++ stringToInsert ++  accumulator) "" xs)
 
+makePrefix :: Int -> String -> String
+makePrefix repeatTimes str = 
+  foldr (\x acc -> x ++ acc) [] . take repeatTimes . repeat $  str
+
+setsEqual :: (Eq a) => [a] -> [a] -> Bool 
+setsEqual xs ys = 
+  let subset = 
+        (\a b -> 
+          (filter (\bool -> bool /= True) . map (\x ->  x `elem` b) $ a) ==  [])
+   in (subset xs ys) && subset ys xs  
+
+compareListsByFunction :: (a -> a -> Bool) -> [a] -> [a] -> Bool
+compareListsByFunction f [] _ = True
+compareListsByFunction f (x:xs) [] = False
+compareListsByFunction f (x:xs) (y:ys) = f x y
 
 {-| Parallel Experiment |-}
 
@@ -176,6 +210,6 @@ badFib n =  a +  b
     where a = (badFib (n - 2))
           b = (badFib (n - 1))
 
-
 check1 = (parMap rdeepseq) badFib (replicate 5 40)
 check2 = map badFib (replicate 5 40)
+

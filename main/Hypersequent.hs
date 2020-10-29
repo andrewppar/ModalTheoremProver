@@ -1,69 +1,57 @@
 module Hypersequent
     (Hypersequent (..)
-    , hypersequentDepth
-    , makeStartingHypersequent
-    , everyInHypersequent
-    , hypersequentBaseAtomicFormulas
-    , emptyHypersequent
-    , purelyModalOrAtomicHypersequentP
-    , gatherAtomicSentencesByPolarity
-)
-    where
+    , showHypersequent 
+    , hypersequentClosed
+    , atomicHypersequent
+    , hypersequentRemoveDuplicates
+) where
 
 import Utilities
 import Formula
 import Canonicalizer
 import Sequent
 
-data Hypersequent = BranchEnd | World Sequent [Hypersequent] deriving (Eq, Show)
--- We're not going to use the Tree structure because it is too overloaded even though this really is just a tree
+data Hypersequent = World Sequent [Hypersequent] deriving (Eq)
 
---instance Show Hypersequent where
- --   show hypersequent = showHypersequent hypersequent 0
-
-showHypersequent :: Hypersequent -> Int -> String
-showHypersequent BranchEnd depth = (replicate depth ' ') ++ "B\n"
-showHypersequent (World seq hypersequents) depth =
-    (replicate depth ' ') ++ (show seq ) ++ "\n" ++
-                              (joinStrings " " (map
-                                                (\hypersequent ->
-                                                     showHypersequent hypersequent (5+ depth))
-                                                hypersequents))
-
-everyInHypersequent :: (Sequent -> Bool) -> Hypersequent -> Bool
-everyInHypersequent _ BranchEnd = True
-everyInHypersequent predicate (World sequent hypersequents) =
-    if predicate sequent
-    then generalizedConjunction . (map (everyInHypersequent predicate)) $ hypersequents
-    else False
-
-hypersequentDepth :: Hypersequent -> Int
-hypersequentDepth BranchEnd = 0
-hypersequentDepth (World seq hypersequents) =
-    1 + (maximum . (map hypersequentDepth) $ hypersequents)
-
-makeStartingHypersequent :: Formula -> Hypersequent
-makeStartingHypersequent formula = World (makePositiveSequent formula) [BranchEnd]
-
-emptyHypersequent :: Hypersequent
-emptyHypersequent = (World emptySequent [BranchEnd])
-
-hypersequentBaseAtomicFormulas :: Hypersequent -> Polarity -> [Formula]
-hypersequentBaseAtomicFormulas BranchEnd _ = []
-hypersequentBaseAtomicFormulas (World seq hypersequents) polarity =
-   sequentAtomicFormulasByPolarity seq polarity
-
-purelyModalOrAtomicHypersequentP :: Hypersequent -> Bool
-purelyModalOrAtomicHypersequentP BranchEnd = True
-purelyModalOrAtomicHypersequentP (World seq hypersequents) =
-    (purelyModalOrAtomicSequentP seq)
-    && (generalizedConjunction . map purelyModalOrAtomicHypersequentP $ hypersequents)
+instance Show Hypersequent where
+  show = showHypersequent True 0 0
 
 
-gatherAtomicSentencesByPolarity :: Polarity -> Hypersequent -> [Formula]
-gatherAtomicSentencesByPolarity _ BranchEnd = []
-gatherAtomicSentencesByPolarity polarity (World seq hypersequents) =
-    let atomsInSeq = filter atomicFormulaP . (case polarity of
-                                                Positive -> posFormulas
-                                                Negative -> negFormulas) $ seq
-    in atomsInSeq ++ (mapAppend (gatherAtomicSentencesByPolarity polarity) hypersequents)
+showHypersequent :: Bool -> Int -> Int -> Hypersequent -> String 
+showHypersequent firstPass depth padding (World seq hypers) = 
+  let paddingPrefix = if firstPass 
+                         then makePrefix 0 " "
+                      else makePrefix padding " "
+      depthPrefix  = makePrefix depth "|"
+      tag = "- "  
+      line = paddingPrefix ++ depthPrefix ++ tag ++ (show seq) ++ "\n"
+      recursiveCase = mapAppend (showHypersequent False (depth + 1) padding) hypers
+   in line ++ recursiveCase 
+
+hypersequentClosed :: Hypersequent -> Bool 
+hypersequentClosed (World seq hypers) = 
+  let intersection  = setIntersection  (posFormulas seq) . negFormulas $ seq 
+      closed = intersection /= [] 
+   in case closed of 
+     True -> True 
+     False -> if hypers == [] 
+                 then False 
+              else not .
+                   emptyListP .  
+                   filter (\bool -> bool == True) .
+                   map hypersequentClosed $ hypers 
+
+atomicHypersequent :: Hypersequent -> Bool 
+atomicHypersequent (World seq hypers) = 
+  if atomicSequentP seq
+     then let 
+        nonAtomicHypers = filter (\bool -> bool /= True) .
+                          map atomicHypersequent $ hypers
+           in nonAtomicHypers == [] 
+  else False
+
+hypersequentRemoveDuplicates :: Hypersequent -> Hypersequent
+hypersequentRemoveDuplicates (World seq hypers) = 
+  let newSeq = (sequentRemoveDuplicates seq)
+      newHypers = (map hypersequentRemoveDuplicates hypers)
+   in World newSeq newHypers 

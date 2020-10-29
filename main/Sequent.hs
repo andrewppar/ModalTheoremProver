@@ -1,19 +1,26 @@
 module Sequent
  (Sequent (..)
-  , Polarity (..)
-  , makePositiveSequent
-  , atomicSequentP
-  , nonAtomicSequentP
-  , gatherFormulas
-  , makeSequent , addJuncts
-  , emptySequent
-  , makeAtomicSequentFromSequent
-  , addFormulaToSequentWithPolarity
-  , makeNegativeSequent
-  , sequentAtomicFormulasByPolarity
-  , purelyModalOrAtomicSequentP
-    -- For Tests
-  , gatherConjunctions)
+ , Polarity (..)
+ , makePositiveSequent
+ , atomicSequentP
+ , nonAtomicSequentP
+ , gatherFormulas
+ , gatherNegations
+ , makeSequent 
+ , addFormulasToSequent
+ , addJuncts
+ , emptySequent
+ , makeAtomicSequentFromSequent
+ , addFormulaToSequentWithPolarity
+ , makeNegativeSequent
+ , sequentAtomicFormulasByPolarity
+ , purelyModalOrAtomicSequentP
+ , gatherImplications
+ , gatherConjunctions
+ , gatherDisjunctions
+ , gatherPossibilities
+ , sequentRemoveDuplicates 
+ , gatherNecessities)
 where
 
 import Utilities
@@ -46,6 +53,12 @@ makeSequent negFormulas posFormulas = Sequent negFormulas posFormulas
 
 emptySequent :: Sequent
 emptySequent = makeSequent [] []
+
+addFormulasToSequent :: Polarity -> [Formula] -> Sequent -> Sequent
+addFormulasToSequent polarity forms (Sequent negs poss) = 
+  case polarity of 
+    Positive -> Sequent negs (poss ++ forms)
+    Negative -> Sequent (negs ++ forms) poss
 
 getSequentFormulasByPolarity :: Polarity -> Sequent -> [Formula]
 getSequentFormulasByPolarity Positive = posFormulas
@@ -102,6 +115,9 @@ makeAtomicSequentFromSequent sequent =
     (makeSequent (filter atomicFormulaP (negFormulas sequent))
                  (filter atomicFormulaP (posFormulas sequent)))
 
+gatherImplications :: [Formula] -> ([Formula], [Formula])
+gatherImplications = gatherFormulas implicationP
+
 gatherConjunctions :: [Formula] -> ([Formula],[Formula])
 gatherConjunctions = gatherFormulas conjunctionP
 
@@ -110,6 +126,12 @@ gatherDisjunctions = gatherFormulas disjunctionP
 
 gatherNegations :: [Formula] -> ([Formula],[Formula])
 gatherNegations = gatherFormulas negationP
+
+gatherPossibilities :: [Formula] -> ([Formula], [Formula])
+gatherPossibilities = gatherFormulas possibilityP
+
+gatherNecessities :: [Formula] -> ([Formula], [Formula])
+gatherNecessities = gatherFormulas necessityP
 
 gatherFormulas :: (Formula -> Bool) -> [Formula] -> ([Formula],[Formula])
 gatherFormulas predicate formulas =
@@ -164,4 +186,10 @@ purelyModalOrAtomicSequentP (Sequent negForms posForms) =
     everyInListMeetsCriteria
     (\formula -> atomicFormulaP formula || atomicNecessityP formula) negForms
  && everyInListMeetsCriteria
-        (\formula -> atomicFormulaP formula || atomicPossibilityP formula) posForms
+        (\formula -> atomicFormulaP formula || atomicPossibilityP formula) posForms 
+
+sequentRemoveDuplicates :: Sequent -> Sequent 
+sequentRemoveDuplicates (Sequent negs poss) = 
+  let newNegs = removeDuplicates . sortFormulas $ negs
+      newPoss = removeDuplicates . sortFormulas $ poss
+   in Sequent newNegs newPoss
