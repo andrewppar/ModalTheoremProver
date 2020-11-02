@@ -1,5 +1,6 @@
 module Hypersequent
     (Hypersequent (..)
+    , Serialization (..)
     , showHypersequent 
     , hypersequentClosed
     , atomicHypersequent
@@ -27,6 +28,28 @@ showHypersequent firstPass depth padding (World seq hypers) =
       line = paddingPrefix ++ depthPrefix ++ tag ++ (show seq) ++ "\n"
       recursiveCase = mapAppend (showHypersequent False (depth + 1) padding) hypers
    in line ++ recursiveCase 
+
+data Serialization = HTML
+
+serializeHypersequent :: Serialization -> Hypersequent -> String
+serializeHypersequent HTML = serializeHypersequentAsHtml 
+
+serializeHypersequentAsHtml :: Hypersequent -> String 
+serializeHypersequentAsHtml hypersequent =
+  let divStart = "<div class=\"hypersequent\">\n" 
+      html = serializeHypersequentAsHtmlInternal hypersequent
+      divEnd = "\n</div>"
+   in divStart ++ html ++ divEnd
+
+serializeHypersequentAsHtmlInternal :: Hypersequent -> String 
+serializeHypersequentAsHtmlInternal (World seq hypers) = 
+  let listStart = "<ul>\n" 
+      sequent = "<li>" ++ (show seq) ++ "</li>" ++ "\n"
+      recursiveCase =
+        foldr (\serialized acc -> acc ++ serialized) ""  . map serializeHypersequentAsHtmlInternal $ hypers
+      listEnd = "\n</ul>"
+   in listStart ++ sequent ++ recursiveCase ++ listEnd
+  
 
 hypersequentClosed :: Hypersequent -> Bool 
 hypersequentClosed (World seq hypers) = 

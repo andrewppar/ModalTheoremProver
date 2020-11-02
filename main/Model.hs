@@ -81,98 +81,103 @@ getCounterExample formula (h@(World seq moreHypers):hypers) =
 satisfies :: Formula -> Model -> PossibleWorld -> Bool
 satisfies form model world = 
   if world `elem` (worlds model)
-     then let (_, satisfactionValue) = satisfiesInternal form model world
-           in satisfactionValue
+     then let (updatedModel, value) = satisfiesInternal form model world 
+           in case value of 
+             Just value -> value 
+             Nothing -> False 
      else False
 
-satisfiesInternal :: Formula -> Model -> PossibleWorld -> (Model, Bool)
+satisfiesInternal :: Formula -> Model -> PossibleWorld -> (Model, Maybe Bool)
 -- TODO: There are probably  some good  abstractions  to  be made
 -- in the quantified parts of this
 satisfiesInternal form@(AtomicFormula string) model world = 
-  let (foundAnswer, modelBoolPair) = checkFormulaInWorld form model world
-   in if foundAnswer 
-         then modelBoolPair 
-         else ((addConsistentFormula (AtomicFormula string) model world True), True)
-satisfiesInternal (Not (AtomicFormula string)) model world = 
-  if (AtomicFormula string) `elem` (falseFormulas world)
-     then (model, True)
-     else ((addConsistentFormula (AtomicFormula string) model world False), True)
+  if form `elem` (trueFormulas world)
+     then (model, Just True)
+     else if form `elem` (falseFormulas world)
+             then (model, Just False)
+             else addFormulaToModelAtWorld form model world True
+satisfiesInternal (Not (AtomicFormula string)) model world =
+ if (AtomicFormula  string) `elem` (trueFormulas world) 
+    then (model, Just False)
+    else if (AtomicFormula string)  `elem` (falseFormulas world)
+         then (model, Just True)
+         else addFormulaToModelAtWorld (AtomicFormula string) model world False
 satisfiesInternal (Not form) model world = 
-  let (updatedModel, satisfiedNegatum) = satisfiesInternal form model world
-   in (updatedModel, (not satisfiedNegatum))
+  let (newModel, recursiveValue) = satisfiesInternal form model world
+      result = case recursiveValue of 
+                   Just True  -> (newModel, Just False)
+                   Just False -> (newModel, Just True)
+                   Nothing    -> (newModel, Nothing)
+   in result 
 satisfiesInternal (And forms) model world = 
-  satisfiesJunctionInternal forms model world True 
+  satisfiesJunctionInternal forms model world True
 satisfiesInternal (Or forms) model world = 
-  satisfiesJunctionInternal forms model world False
--- These two cases are messy, whether or not we can show
--- that a model satisfies a formula depends on the order that we 
--- evaluate that question for related worlds
+  satisfiesJunctionInternal forms model world False 
+
 satisfiesInternal (Necessarily form) model world = 
-  let relatedWorlds = getRelatedWorlds model world 
+  let relatedWorlds = getRelatedWorlds model world
    in satisfiesModalInternal form model relatedWorlds True
 satisfiesInternal (Possibly form) model world =
   let relatedWorlds = getRelatedWorlds model world
-   in satisfiesModalInternal form model relatedWorlds False
+   in satisfiesModalInternal form model relatedWorlds False 
 
-satisfiesJunctionInternal ::  [Formula] -> Model -> PossibleWorld -> Bool -> (Model, Bool)
-satisfiesJunctionInternal [] model _ startBool =  (model, startBool)
-satisfiesJunctionInternal  (x:xs) model world startBool = 
-  let (updatedModel, result) = satisfiesInternal x model  world
-   in if result /= startBool 
-         then (updatedModel, result)
-         else satisfiesJunctionInternal xs updatedModel world startBool
-
-satisfiesModalInternal :: Formula -> Model -> [PossibleWorld] -> Bool -> (Model, Bool)
-satisfiesModalInternal _ model [] startBool = (model, startBool)
-satisfiesModalInternal form model (world:worlds) startBool = 
-  let (updatedModel, result) = satisfiesInternal  form model world
-   in if  result /= startBool 
-         then (updatedModel, result)
-         else  satisfiesModalInternal form model worlds startBool
-
-checkFormulaInWorld :: Formula -> Model -> PossibleWorld -> (Bool, (Model, Bool))
-checkFormulaInWorld form model world = 
-  if  form `elem` (trueFormulas world)
-     then (True, (model, True))
-     else if form `elem` (falseFormulas world)
-          then (True, (model, False))
-          else (False, (model, False))
-
-addConsistentFormula :: Formula -> Model -> PossibleWorld -> Bool -> Model
-addConsistentFormula form model world position = 
-  let modelWorlds = worlds model
-   in if not (world `elem` modelWorlds) -- #inefficient we should get the matching world while we check
-         then model
-      else let newWorld = case position of 
-                              True  -> addTrueFormula world form
-                              False -> addFalseFormula world form
-            in replaceWorldInModel model world newWorld 
-
+addFormulaToModelAtWorld :: Formula -> Model -> PossibleWorld -> Bool -> (Model, Maybe Bool)
+addFormulaToModelAtWorld form model old@(PossibleWorld true false) position = 
+  let newWorld = (case  position of 
+                     True  -> (PossibleWorld (form:true) false)
+                     False -> (PossibleWorld true (form:false)))
+      newModel = replaceWorldInModel model old newWorld 
+   in (newModel, Just position)
+        
 replaceWorldInModel :: Model -> PossibleWorld -> PossibleWorld -> Model
-replaceWorldInModel (Model worlds relations) oldWorld newWorld = 
-  let newWorlds = replaceWorldInList worlds oldWorld newWorld
-      newRelations = replaceWorldInRelations relations oldWorld newWorld
-   in Model newWorlds newRelations
+replaceWorldInModel model old new = 
+  let newWorlds = replaceWorldInWorlds (worlds model) old new
+      newRelations = replaceWorldInRelations (relations model) old new
+   in (Model newWorlds newRelations)
 
-replaceWorldInList :: [PossibleWorld] -> PossibleWorld -> PossibleWorld -> [PossibleWorld]
-replaceWorldInList [] _ _ = []  
-replaceWorldInList (x:xs) old new = 
-  let recursiveCase = replaceWorldInList xs old new
-   in  if x == old 
-          then (new:recursiveCase)
-          else (x:recursiveCase)
+replaceWorldInWorlds ::  [PossibleWorld] -> PossibleWorld -> PossibleWorld -> [PossibleWorld]
+replaceWorldInWorlds [] _ _  = []
+replaceWorldInWorlds (world:worlds) old new = 
+  if world == old
+     then (new:(replaceWorldInWorlds worlds old new))
+     else (world:(replaceWorldInWorlds worlds old new))
 
 replaceWorldInRelations :: [(PossibleWorld, PossibleWorld)] -> PossibleWorld -> PossibleWorld -> [(PossibleWorld, PossibleWorld)]
-replaceWorldInRelations xs old new = 
-  foldr (\r@(rel, relum) acc -> 
-    if rel == old && relum == old
-       then ((new, new):acc)
-       else if rel == old 
-               then ((new, relum):acc)
-               else if relum == old
-                       then ((rel, new):acc)
-                       else r:acc) [] xs
-  
+replaceWorldInRelations []  _ _ = []
+replaceWorldInRelations ((relator, related):relations) old new  
+  | relator == old && related == old = 
+    ((new, new):replaceWorldInRelations relations old new)
+  | relator == old = 
+    ((new, related):replaceWorldInRelations relations old new)
+  | related == old = 
+    ((relator, new): replaceWorldInRelations relations old new)
+  | otherwise = 
+    ((relator,related): replaceWorldInRelations relations old new)
+
+satisfiesJunctionInternal :: [Formula] -> Model -> PossibleWorld -> Bool -> (Model, Maybe Bool)
+satisfiesJunctionInternal [] model _ startingValue =
+  (model, Just startingValue)
+satisfiesJunctionInternal (x:xs) model world startingValue = 
+  let (updatedModel, recursiveValue) = satisfiesInternal x model world
+   in case recursiveValue of 
+     Just value ->
+       if value /= startingValue
+          then (updatedModel, Just value)
+          else satisfiesJunctionInternal xs model world startingValue
+     Nothing -> (updatedModel, Nothing)
+
+satisfiesModalInternal :: Formula -> Model -> [PossibleWorld] -> Bool -> (Model, Maybe Bool)
+satisfiesModalInternal _ model [] startingValue = 
+  (model, Just startingValue)
+satisfiesModalInternal form model (world:worlds) startingValue = 
+  let (updatedModel, recursiveValue) = satisfiesInternal form model world
+   in case recursiveValue of 
+     Just value -> 
+       if value /= startingValue 
+          then (updatedModel, Just value)
+          else satisfiesModalInternal form model worlds startingValue 
+     Nothing -> (updatedModel, Nothing)
+
 
 buildModelFromHypersequent :: Hypersequent -> Model
 buildModelFromHypersequent hypersequent = 
@@ -271,8 +276,9 @@ s4 = makeSequent [] [np]
 h1  = (World s1 [(World s1 [])])
 h2 = (World s2 [(World s3 [(World s1 [])]), (World s4 [])])
 
-f = (Or [(Necessarily p), (Necessarily (Possibly (Not p)))])
-h = World (makeSequent [] []) [(World (makeSequent [p] [Possibly np]) []), (World  (makeSequent [] [p]) [])]
+f = (Necessarily (Possibly (Or [(Necessarily p), (Necessarily (Possibly (Not p)))])))
+--h = World (makeSequent [] []) [(World (makeSequent [p] [Possibly np]) []), (World  (makeSequent [] [p]) [])]
+h = World (makeSequent [] [f]) []
 m = buildModelFromHypersequent h
 subs = disjuncts . negatum $ f
 rs = getRelatedWorlds m (head (worlds m))

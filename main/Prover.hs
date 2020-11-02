@@ -34,6 +34,10 @@ showProofTree n (Node hypersequent prooftree) =
       recursiveCase = foldr (\x acc -> (showProofTree (n + 1) x) ++ acc) [] prooftree
    in depth ++ " " ++ hyper ++ recursiveCase
 
+
+--serializeProofTree :: ProofTree -> Serialization -> String
+--serializeProofTree 
+
 gatherOpenNodes :: ProofTree -> [Hypersequent]
 gatherOpenNodes Open = [] 
 gatherOpenNodes Closed = [] 
