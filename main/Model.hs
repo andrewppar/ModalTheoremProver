@@ -74,7 +74,7 @@ getRelatedWorldsInternal accumulator visitedWorlds relations world =
 
 makeWorldFromSequent :: Sequent -> String -> PossibleWorld
 makeWorldFromSequent (Sequent negs poss) tag =
-  makeWorld negs poss tag
+  makeWorld (atoms negs) (atoms poss) tag
     where atoms = filter (\form -> atomicFormulaP form)
 
 hypersequentSatisfies :: Formula -> Hypersequent -> Bool
@@ -211,10 +211,10 @@ makeWorldsAndRelations (World seq hypers) tag =
      let nextTag = generateNextTag accTag
          newRoot = makeWorldFromSequent accSeq nextTag
          (updatedWorlds, updatedRels, lastTag) = 
-           makeWorldsAndRelations hyper nextTag
+           makeWorldsAndRelations hyper nextTag 
          newWorlds = accWorlds ++ updatedWorlds
          newRels = ((resultWorld, newRoot):accRelations) ++ updatedRels
-      in (newWorlds, newRels, nextTag)) ([resultWorld], [], tag) hypers
+      in (newWorlds, newRels, lastTag)) ([resultWorld], [], tag) hypers
 
 
 
