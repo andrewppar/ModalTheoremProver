@@ -76,10 +76,11 @@ intuitionisticProveTestCaseTable =
           ,(Implies (And [(Not p), (Not q)]) (Not (Or [p, q])))]), Proved)
   , ((Implies (Not (Not p)) p), CounterExample)
   , ((Implies p (Not (Not p))), Proved)
-  , ((Implies p p), Proved)
   , ((Implies (Or [(Not p), (Not q)]) (Not (And [p, q]))), Proved)
   , ((Not (Not (Implies (equiv (Not p) (Not p)) (Not q)))), CounterExample)
-  , ((Not (Not (Implies (Not (equiv p p)) (Not q)))), Proved)
+  , ((Not (Not (Implies (Not (equiv (Not p) (Not p))) (Not q)))), Proved)
+  , ((Not (Not (Implies (Not (Implies p  p)) (Not q)))), Proved)
+--  , ((Not (Not (Or [(Not (Implies (Not p) (Not (Not p)))), p]))), Proved)
 --
 --                        ((equiv (And [(AtomicFormula "a"), (AtomicFormula "b")]) (Not (Or [(Not (AtomicFormula "a")), (Not (AtomicFormula "b"))]))),
 --                         Proved),

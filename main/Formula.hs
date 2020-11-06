@@ -2,6 +2,7 @@ module Formula
     (Formula (..)
     , equiv
     , parseFormula
+    , serializeFormulaAsHaskell
     , makeAtom
     , atomicFormulaP
     , nonAtomicFormulaP
@@ -37,6 +38,7 @@ data Formula = AtomicFormula {atom :: String}
              | And         {conjuncts :: [Formula]}
              | Or          {disjuncts :: [Formula]}
              | Implies     {antecedent :: Formula, consequent :: Formula}
+             | Equivalent  {first :: Formula, second :: Formula}
              | Not         {negatum :: Formula}
              | Possibly    {possibility :: Formula}
              | Necessarily {necessity :: Formula}
@@ -70,6 +72,7 @@ formulaLessThan formulaOne formulaTwo =
 formulaRank :: Formula -> Int
 formulaRank (Not negatum)      = 1 + (formulaRank negatum)
 formulaRank (Implies ant cons) = (formulaRank ant) + (formulaRank cons)
+formulaRank (Equivalent one two) = (formulaRank one) + (formulaRank two)
 formulaRank (And conjuncts)    = sum . (map formulaRank) $ conjuncts
 formulaRank (Or disjuncts)      = sum . (map formulaRank) $ disjuncts
 formulaRank (Necessarily necessity) = 1 + (formulaRank necessity)
@@ -107,12 +110,18 @@ complexFormulaLessThan :: Formula -> Formula -> Bool
 complexFormulaLessThan (AtomicFormula atomOne) (AtomicFormula atomTwo) =
     stringLessThan atomOne atomTwo
 complexFormulaLessThan (AtomicFormula atom) _ = True
+
 complexFormulaLessThan (Not negatum1) (Not negatum2) = complexFormulaLessThan negatum1 negatum2
 complexFormulaLessThan (Not negatum1) _ = True
 
 complexFormulaLessThan (Implies ant1 con1) (Implies ant2 con2) = complexFormulaLessThan ant1 ant2
 complexFormulaLessThan (Implies ant con) (Not negatum) = False
 complexFormulaLessThan (Implies ant con) _ = True
+
+complexFormulaLessThan (Equivalent one two) (Equivalent three four) = complexFormulaLessThan one three
+complexFormulaLessThan (Equivalent _ _) (Not _) = False
+complexFormulaLessThan (Equivalent _ _) (Implies _ _) = False  
+complexFormulaLessThan (Equivalent _ _) _ = True
 
 complexFormulaLessThan (And conjunctsOne) (And conjunctsTwo) =
     compareJuncts conjunctsOne conjunctsTwo
@@ -159,9 +168,42 @@ instance Show Formula where
     show (And conjuncts) = "(And " ++ (joinStrings " " . map show) conjuncts ++ ")"
     show (Or disjuncts)  = "(Or " ++  (joinStrings  " " . map show) disjuncts ++ ")"
     show (Implies antecedent consequent) = "(Implies " ++ (show antecedent) ++ (show consequent) ++ ")"
+    show (Equivalent formulaOne formulaTwo) = "(Equivalent  " ++ (show formulaOne) ++ (show formulaTwo) ++ ")"
     show (Not negatum) = "(Not " ++ show negatum ++ ")"
     show (Possibly possibility) = "(M " ++ show possibility ++ ")"
     show (Necessarily necessity) = "(L " ++ show necessity ++ ")"
+
+serializeFormulaAsHaskell :: Formula -> String 
+serializeFormulaAsHaskell (AtomicFormula string) = 
+  "(AtomicFormula " ++ show string ++ ")"
+serializeFormulaAsHaskell (Not negatum) = 
+  "(Not " ++ serializeFormulaAsHaskell negatum ++ ")"
+serializeFormulaAsHaskell (And conjuncts) = 
+  let  prefix  = "(And ["
+       middle = joinStrings "," . map serializeFormulaAsHaskell $ conjuncts
+       postfix = "])"
+   in prefix ++ middle ++ postfix 
+serializeFormulaAsHaskell (Or disjuncts) = 
+   let  prefix  = "(Or ["
+        middle = joinStrings "," . map serializeFormulaAsHaskell $ disjuncts
+        postfix = "])"
+   in prefix ++ middle ++ postfix
+serializeFormulaAsHaskell (Implies antecedent consequent) = 
+  joinStrings "" [ "(Implies "
+                 , serializeFormulaAsHaskell antecedent
+                 , serializeFormulaAsHaskell consequent
+                 , ")"]
+serializeFormulaAsHaskell (Equivalent one two) = 
+  joinStrings "" [ "(Equivalent "
+                 , serializeFormulaAsHaskell one
+                 , serializeFormulaAsHaskell two
+                 , ")"]
+serializeFormulaAsHaskell (Necessarily necessity) = 
+  "(Necessarily " ++ serializeFormulaAsHaskell necessity ++ ")"
+serializeFormulaAsHaskell (Possibly possibility) = 
+  "(Possibly " ++ serializeFormulaAsHaskell possibility ++ ")"
+
+ 
 
 -- Reading Formulas
 
@@ -180,6 +222,7 @@ parseFormula xs =
                 "And"           -> parseConjunctionString . init $ rest
                 "Or"            -> parseDisjunctionString . init $ rest
                 "Implies"       -> parseImplicationString . init $ rest
+                "Equivalent"    -> parseBiconditionalString . init $ rest
                 "Not"           -> parseNegationString  . init $ rest
                 "M"             -> parsePossibilityString  . init $ rest 
                 "L"             -> parseNecessityString  . init $ rest
@@ -254,7 +297,13 @@ getListItemsInternal bracketCount parenCount char (x:xs) currentItem acc =
   getListItemsInternal bracketCount parenCount x xs (currentItem ++ [char]) acc
 
 parseImplicationString :: String -> Maybe Formula
-parseImplicationString xs = 
+parseImplicationString = parseBinaryFormulaString "Implies"
+
+parseBiconditionalString :: String  -> Maybe Formula 
+parseBiconditionalString = parseBinaryFormulaString "Equivalent"
+
+parseBinaryFormulaString :: String -> String  -> Maybe Formula
+parseBinaryFormulaString xs parseType = 
   let topLevelItems = getTopLevelItems xs 
    in if length topLevelItems /= 2 
          then Nothing
@@ -263,7 +312,9 @@ parseImplicationString xs =
                   then Nothing
                else let antecedent = Data.Maybe.fromJust . head $ args
                         consequent = Data.Maybe.fromJust .  head . tail $ args
-                     in Just (Implies antecedent consequent)
+                     in case  parseType of 
+                       "Implies" -> Just (Implies antecedent consequent)
+                       "Equivalent" -> Just (Equivalent antecedent consequent)
 
 
 parseNegationString :: String -> Maybe Formula 
@@ -311,7 +362,7 @@ getTopLevelItemsInternal parenCount char (x:xs) currentItem acc =
 ---- Constructing Formulas
 
 equiv :: Formula -> Formula -> Formula
-equiv a b = (And [(Implies a b), (Implies b a)])
+equiv a b = (Equivalent a b) 
 
 makeAtom :: String -> Formula
 makeAtom string = AtomicFormula string
@@ -328,6 +379,10 @@ nonAtomicFormulaP = not . atomicFormulaP
 implicationP :: Formula -> Bool 
 implicationP (Implies _ _) = True
 implicationP _ = False
+
+equivalenceP :: Formula -> Bool 
+equivalenceP (Equivalent _ _) = True 
+equivalenceP _ = False
 
 disjunctionP :: Formula -> Bool
 disjunctionP (Or _) = True
@@ -348,6 +403,7 @@ possibilityP _ = False
 necessityP :: Formula -> Bool
 necessityP (Necessarily _) = True
 necessityP _ = False
+
 
 possiblyFormulaDisjuncts :: Formula -> [Formula]
 possiblyFormulaDisjuncts formula = possiblyFormulaJuncts disjunctionP disjuncts formula

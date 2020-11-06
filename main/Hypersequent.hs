@@ -1,6 +1,7 @@
 module Hypersequent
     (Hypersequent (..)
     , Serialization (..)
+    , serializeHypersequent
     , showHypersequent 
     , hypersequentClosed
     , atomicHypersequent
@@ -29,10 +30,11 @@ showHypersequent firstPass depth padding (World seq hypers) =
       recursiveCase = mapAppend (showHypersequent False (depth + 1) padding) hypers
    in line ++ recursiveCase 
 
-data Serialization = HTML
+data Serialization = HTML | HS
 
 serializeHypersequent :: Serialization -> Hypersequent -> String
 serializeHypersequent HTML = serializeHypersequentAsHtml 
+serializeHypersequent HS   = serializeHypersequentAsHaskell
 
 serializeHypersequentAsHtml :: Hypersequent -> String 
 serializeHypersequentAsHtml hypersequent =
@@ -49,7 +51,15 @@ serializeHypersequentAsHtmlInternal (World seq hypers) =
         foldr (\serialized acc -> acc ++ serialized) ""  . map serializeHypersequentAsHtmlInternal $ hypers
       listEnd = "\n</ul>"
    in listStart ++ sequent ++ recursiveCase ++ listEnd
-  
+
+serializeHypersequentAsHaskell :: Hypersequent -> String 
+serializeHypersequentAsHaskell (World (Sequent negs poss) hypers) = 
+  let negatives = joinStrings "," . map serializeFormulaAsHaskell $ negs
+      positives = joinStrings "," . map serializeFormulaAsHaskell $ poss
+      seq = "(makeSequent [" ++ negatives ++ "]" ++ "  [" ++ positives ++ "])"
+      recCase = joinStrings "," . map serializeHypersequentAsHaskell $ hypers
+   in "(World " ++ seq ++ "[" ++ recCase ++ "])"
+     
 
 hypersequentClosed :: Hypersequent -> Bool 
 hypersequentClosed (World seq hypers) = 
