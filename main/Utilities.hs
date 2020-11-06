@@ -175,7 +175,7 @@ splitStringAtFirst char (x:xs) =
       in (x:first, second)
 
 joinStrings :: String -> [String] -> String
-joinStrings _ [] = " "
+joinStrings _ [] =  "" 
 joinStrings stringToInsert (x:xs) = x ++ (foldl (\string accumulator -> string ++ stringToInsert ++  accumulator) "" xs)
 
 makePrefix :: Int -> String -> String
