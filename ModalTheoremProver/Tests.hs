@@ -1,10 +1,10 @@
-import Utilities
-import Formula
-import Canonicalizer
-import Sequent
-import Hypersequent
-import IntuitionisticTranslator
-import Prover
+import ModalTheoremProver.Utilities
+import ModalTheoremProver.Formula
+import ModalTheoremProver.Canonicalizer
+import ModalTheoremProver.Sequent
+import ModalTheoremProver.Hypersequent
+import ModalTheoremProver.IntuitionisticTranslator
+import ModalTheoremProver.Prover
 import Data.Maybe
 
 type Verbosity = String
@@ -39,7 +39,12 @@ testCaseTableVerbose function inputOutputPairs =
           putStrLn $ "\nOverall Result: " ++
                    if (generalizedConjunction . map fst) results
                    then "Success\n"
-                   else "Failure\n"
+                   else let failureCount = 
+                              length . filter (\x  -> not  x) . map fst $ results
+                            total = length . map fst $ results
+                         in "[" ++ (show failureCount) ++ "/" ++ (show total) ++ "] Failures"
+ 
+
 
 intuitionisticProveTest :: Bool 
 intuitionisticProveTest = 
@@ -81,9 +86,12 @@ intuitionisticProveTestCaseTable =
   , ((Not (Not (Implies (Not (equiv (Not p) (Not p))) (Not q)))), Proved)
   , ((Not (Not (Implies (Not (Implies p  p)) (Not q)))), Proved)
 --  , ((Not (Not (Or [(Not (Implies (Not p) (Not (Not p)))), p]))), Proved)
---
---                        ((equiv (And [(AtomicFormula "a"), (AtomicFormula "b")]) (Not (Or [(Not (AtomicFormula "a")), (Not (AtomicFormula "b"))]))),
---                         Proved),
+-- 
+--  , ((Not (Not (Or [(Not (equiv p (Not p))), (Not (Not p))]))), Proved)
+  , ((equiv (And [(AtomicFormula "a"), (AtomicFormula "b")]) 
+            (Not 
+              (Or [ (Not (AtomicFormula "a"))
+                   ,(Not (AtomicFormula "b"))]))), CounterExample)
 --
 --                        ((Implies
 --                          (And
@@ -94,19 +102,11 @@ intuitionisticProveTestCaseTable =
 --                           (makeAtom "TVAI-2")),
 --                         Proved),
 --
---                        ((equiv (And [(AtomicFormula "p")]) (AtomicFormula "p")),
---                         Proved),
---                        ((Implies (Implies (Implies (AtomicFormula "p") (AtomicFormula "q")) (AtomicFormula "p")) (AtomicFormula "p")), Proved)  ,
---                     
---                      ((Implies (Implies (AtomicFormula "p") (Implies (AtomicFormula "q") (AtomicFormula "p"))) (AtomicFormula "p")), CounterExample) , 
---
---                      ((Implies (Implies (Implies (AtomicFormula "p") (AtomicFormula "q")) (AtomicFormula "p")) (AtomicFormula "p")), Proved)
---
---
-  --, ((Necessarily p), CounterExample)
-  --
-  --  , ((Implies (Implies (Not (Implies p q)) r)
---            (Implies p (Implies (Not r) q))), CounterExample)
+  , ((equiv (And [(AtomicFormula "p")]) (AtomicFormula "p")) , Proved)
+  , (p, CounterExample)
+  , ((Not p),  CounterExample)
+  , ((Implies (Implies (Not (Implies p q)) r)
+              (Implies p (Implies (Not r) q))), CounterExample)
 
   ] 
 

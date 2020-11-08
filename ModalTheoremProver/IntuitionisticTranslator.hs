@@ -1,7 +1,7 @@
-module IntuitionisticTranslator
+module ModalTheoremProver.IntuitionisticTranslator
   (intuitionisticTranslate) where 
 
-import Formula 
+import ModalTheoremProver.Formula 
 import Data.Maybe 
 
 intuitionisticTranslate :: Formula -> Maybe Formula

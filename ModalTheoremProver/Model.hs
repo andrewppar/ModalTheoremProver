@@ -1,16 +1,17 @@
-module Model
+module ModalTheoremProver.Model
   (Model (..)
   , satisfies
   , buildModelFromHypersequent
   , hypersequentSatisfies
   , getCounterExample
   , makeWorldsAndRelations
+  , serializeModel
   )
     where
-import Formula
-import Sequent
-import Hypersequent
-import Utilities
+import ModalTheoremProver.Formula
+import ModalTheoremProver.Sequent
+import ModalTheoremProver.Hypersequent
+import ModalTheoremProver.Utilities
 import Data.Maybe
 import qualified Data.Map as Map
 import Debug.Trace
@@ -26,8 +27,65 @@ data Model = Model {worlds :: [PossibleWorld]
 instance Show Model where
   show model =
     let ws = mapAppend (\w -> show w ++ "\n") . worlds $ model
-        rs = mapAppend (\r -> show r ++ "\n") . relations $ model
+        rs = mapAppend (\(r1,r2) -> (tag r1) ++ " -> " ++  (tag  r2)  ++ "\n") . relations $ model
      in "Worlds: \n " ++ ws ++ "\n" ++ "Relations: \n" ++ rs
+
+serializeModel :: Serialization -> Model -> IO()
+serializeModel HTML = serializeModelToHTML 
+
+serializeModelToHTML :: Model -> IO()
+serializeModelToHTML model = 
+  do template <- readFile $ "./utilities/model_html_template.html"
+     let templateLines  = lines template
+         withWorlds     = addWorldsToTemplateLines templateLines model
+         withRelations  = addRelationsToTemplateLines withWorlds model
+         withKey        = addKeyToTemplateLines withRelations model
+      in do writeFile "./utilities/Model.html" (unlines withKey)
+        --sequence_ . map putStrLn $ withKey
+
+addWorldsToTemplateLines :: [String]  -> Model -> [String]
+addWorldsToTemplateLines [] _ = [] 
+addWorldsToTemplateLines (line:lines) model = 
+  if (filter (\x -> x /= ' ') line) == "NODES"
+     then (generateWorldHTMLLines model) ++ lines
+     else (line:(addWorldsToTemplateLines lines model))
+
+generateWorldHTMLLines :: Model -> [String]
+generateWorldHTMLLines model = 
+  let modelWorlds = worlds model
+      modelLines =  
+        map (\world -> "{ id: " ++ (tag world) ++ ", reflexive: false} ") modelWorlds
+   in (map (\line -> line ++ ",") (init modelLines)) ++ [(last modelLines)]
+
+
+addRelationsToTemplateLines :: [String] -> Model -> [String] 
+addRelationsToTemplateLines [] _ = [] 
+addRelationsToTemplateLines (line:lines) model = 
+  if (filter (\x -> x /=  ' ') line) == "RELATIONS"
+     then (generateRelationsHTMLLines model) ++ lines
+     else (line:(addRelationsToTemplateLines lines model))
+
+generateRelationsHTMLLines  :: Model -> [String]
+generateRelationsHTMLLines model = 
+  let rels = relations model
+      relationLines =
+        map (\(relator, relatum) -> 
+             "{ source: nodes[" ++ (tag relator) ++ "], target: nodes[" ++ (tag relatum) ++ "], left: false, right:  true}") rels
+   in (map (\line -> line ++ ",") (init relationLines)) ++ [(last relationLines)]
+
+
+
+
+addKeyToTemplateLines  ::  [String] -> Model -> [String]
+addKeyToTemplateLines lines model = 
+  let start = init lines
+      header = "<h3>Key</h3>"
+      modelWorlds = worlds model
+      body = map (\world -> 
+        let trues = joinStrings "," . map show . trueFormulas $  world
+            falses  = joinStrings "," . map show . falseFormulas $ world
+         in  "<p>World " ++ (tag world) ++ "<b>⊨</b>" ++ trues ++ "<b>⊭</b>" ++ falses ++ "</p>") modelWorlds
+  in start ++ body ++ [(last lines)]
 
 
 data PossibleWorld = PossibleWorld {trueFormulas :: [Formula]
@@ -102,10 +160,17 @@ satisfies form model world =
              Nothing -> False
      else False
 
+debugMode = False
+satisfiesIntermediate  :: Formula -> Model -> PossibleWorld -> (Model, Maybe Bool)
+satisfiesIntermediate formula model  world = 
+  if debugMode 
+     then trace ("SatisfiesInternal: " ++ (show formula) ++ " " ++ (tag world)) (satisfiesInternal formula model world)
+     else satisfiesInternal formula model world
+
 satisfiesInternal :: Formula -> Model -> PossibleWorld -> (Model, Maybe Bool)
 -- TODO: There are probably  some good  abstractions  to  be made
 -- in the quantified parts of this
-satisfiesInternal form@(AtomicFormula string) model world =
+satisfiesInternal form@(AtomicFormula string) model world = 
   if form `elem` (trueFormulas world)
      then (model, Just True)
      else if form `elem` (falseFormulas world)
@@ -118,7 +183,7 @@ satisfiesInternal (Not (AtomicFormula string)) model world =
          then (model, Just True)
          else addFormulaToModelAtWorld (AtomicFormula string) model world False
 satisfiesInternal (Not form) model world =
-  let (newModel, recursiveValue) = satisfiesInternal form model world
+  let (newModel, recursiveValue) = satisfiesIntermediate form model world
       result = case recursiveValue of
                    Just True  -> (newModel, Just False)
                    Just False -> (newModel, Just True)
@@ -173,7 +238,7 @@ satisfiesJunctionInternal :: [Formula] -> Model -> PossibleWorld -> Bool -> (Mod
 satisfiesJunctionInternal [] model _ startingValue =
   (model, Just startingValue)
 satisfiesJunctionInternal (x:xs) model world startingValue =
-  let (updatedModel, recursiveValue) = satisfiesInternal x model world
+  let (updatedModel, recursiveValue) = satisfiesIntermediate x model world
    in case recursiveValue of
      Just value ->
        if value /= startingValue
@@ -185,7 +250,7 @@ satisfiesModalInternal :: Formula -> Model -> [PossibleWorld] -> Bool -> (Model,
 satisfiesModalInternal _ model [] startingValue =
   (model, Just startingValue)
 satisfiesModalInternal form model (world:worlds) startingValue =
-  let (updatedModel, recursiveValue) = satisfiesInternal form model world
+  let (updatedModel, recursiveValue) = satisfiesIntermediate form model world
    in case recursiveValue of
      Just value ->
        if value /= startingValue
@@ -247,24 +312,26 @@ p = (AtomicFormula "p")
 q = (AtomicFormula "q")
 np = (Not p)
 pandq = (And [p, q])
---f = (Necessarily
---     (Possibly
---      (Or [ (Necessarily p)
---          , (Necessarily (Possibly (And [ (Necessarily (Possibly (Not p)))
---                                        , (Possibly
---                                            (Necessarily
---                                              (Possibly (Not p))))])))])))
+f = (Necessarily
+     (Possibly
+      (Or [ (Necessarily p)
+          , (Necessarily (Possibly (And [ (Necessarily (Possibly (Not p)))
+                                        , (Possibly
+                                            (Necessarily
+                                              (Possibly (Not p))))])))])))
 s1 = makeSequent  [] [p]
 s5 = makeSequent [p] []
 
 s2 = makeSequent [p] [q]
 s3  = makeSequent [p] [np, pandq]
 s4 = makeSequent [] [np]
-h1  = (World (makeSequent [] []) [(World s1 []), (World  s5 [])])
+s = makeSequent [] []
+h = (World s [(World  s1 [(World s5  [])])])
+--h1  = (World (makeSequent [] []) [(World s1 []), (World  s5 [])])
 h2 = (World s2 [(World s3 [(World s1 [])]), (World s4 [])])
-f = (Implies (Implies (Implies  p q) p) p)
-h = (World (makeSequent []  [])[(World (makeSequent []  [(Possibly (Not (AtomicFormula "p"))),(Possibly (And [(Possibly (Not (AtomicFormula "p"))),(Necessarily (Or [(Necessarily (AtomicFormula "q")),(Possibly (Not (AtomicFormula "p")))]))]))])[(World (makeSequent []  [(Possibly (Not (AtomicFormula "p"))),(Necessarily (AtomicFormula "q")),(Possibly (Not (AtomicFormula "p")))])[]),(World (makeSequent [(AtomicFormula "p"),(AtomicFormula "p")]  [(Possibly (Not (AtomicFormula "p"))),(Possibly (Not (AtomicFormula "p"))),(Possibly (Not (AtomicFormula "p")))])[(World (makeSequent [(AtomicFormula "p"),(AtomicFormula "p")]  [(Possibly (Not (AtomicFormula "p"))),(AtomicFormula "q")])[])]),(World (makeSequent []  [(Possibly (Not (AtomicFormula "p"))),(AtomicFormula "p")])[(World (makeSequent []  [(Possibly (Not (AtomicFormula "p"))),(Necessarily (AtomicFormula "q")),(Possibly (Not (AtomicFormula "p")))])[]),(World (makeSequent [(AtomicFormula "p"),(AtomicFormula "p")]  [(Possibly (Not (AtomicFormula "p"))),(Possibly (Not (AtomicFormula "p"))),(Possibly (Not (AtomicFormula "p")))])[(World (makeSequent [(AtomicFormula "p"),(AtomicFormula "p")]  [(Possibly (Not (AtomicFormula "p"))),(AtomicFormula "q")])[])])])])])
-m = buildModelFromHypersequent h1 "0"
-subs = disjuncts . negatum $ f
-rs = getRelatedWorlds m (head (worlds m))
-abcd = head rs
+--f = (Implies (Implies (Implies  p q) p) p)
+--h  = (World (makeSequent []  [])[(World (makeSequent []  [(Necessarily (Possibly (And [(Necessarily (Possibly (Not (AtomicFormula "p")))),(Possibly (Necessarily (Possibly (Not (AtomicFormula "p")))))]))),(Necessarily (AtomicFormula "p")),(Possibly (Or [(Necessarily (AtomicFormula "p")),(Necessarily (Possibly (And [(Necessarily (Possibly (Not (AtomicFormula "p")))),(Possibly (Necessarily (Possibly (Not (AtomicFormula "p")))))])))]))])[(World (makeSequent []  [(Necessarily (Possibly (And [(Necessarily (Possibly (Not (AtomicFormula "p")))),(Possibly (Necessarily (Possibly (Not (AtomicFormula "p")))))]))),(Necessarily (AtomicFormula "p")),(AtomicFormula "p")])[]),(World (makeSequent []  [(Necessarily (Possibly (Not (AtomicFormula "p")))),(Possibly (And [(Necessarily (Possibly (Not (AtomicFormula "p")))),(Possibly (Necessarily (Possibly (Not (AtomicFormula "p")))))])),(Necessarily (AtomicFormula "p")),(Necessarily (Possibly (And [(Necessarily (Possibly (Not (AtomicFormula "p")))),(Possibly (Necessarily (Possibly (Not (AtomicFormula "p")))))])))])[])])])
+--h1 = (World (makeSequent []  [])[(World (makeSequent []  [(Necessarily (Possibly (And [(Necessarily (Possibly (Not (AtomicFormula "p")))),(Possibly (Necessarily (Possibly (Not (AtomicFormula "p")))))]))),(Necessarily (AtomicFormula "p")),(Possibly (Or [(Necessarily (AtomicFormula "p")),(Necessarily (Possibly (And [(Necessarily (Possibly (Not (AtomicFormula "p")))),(Possibly (Necessarily (Possibly (Not (AtomicFormula "p")))))])))]))])[(World (makeSequent []  [(Necessarily (Possibly (And [(Necessarily (Possibly (Not (AtomicFormula "p")))),(Possibly (Necessarily (Possibly (Not (AtomicFormula "p")))))]))),(Necessarily (AtomicFormula "p")),(AtomicFormula "p")])[]),(World (makeSequent []  [(Possibly (Necessarily (Possibly (Not (AtomicFormula "p"))))),(Possibly (And [(Necessarily (Possibly (Not (AtomicFormula "p")))),(Possibly (Necessarily (Possibly (Not (AtomicFormula "p")))))])),(Necessarily (AtomicFormula "p")),(Necessarily (Possibly (And [(Necessarily (Possibly (Not (AtomicFormula "p")))),(Possibly (Necessarily (Possibly (Not (AtomicFormula "p")))))])))])[])])])
+--h = (World (makeSequent []  [])[(World (makeSequent []  [(Possibly (Not (AtomicFormula "p"))),(Possibly (And [(Possibly (Not (AtomicFormula "p"))),(Necessarily (Or [(Necessarily (AtomicFormula "q")),(Possibly (Not (AtomicFormula "p")))]))]))])[(World (makeSequent []  [(Possibly (Not (AtomicFormula "p"))),(Necessarily (AtomicFormula "q")),(Possibly (Not (AtomicFormula "p")))])[]),(World (makeSequent [(AtomicFormula "p"),(AtomicFormula "p")]  [(Possibly (Not (AtomicFormula "p"))),(Possibly (Not (AtomicFormula "p"))),(Possibly (Not (AtomicFormula "p")))])[(World (makeSequent [(AtomicFormula "p"),(AtomicFormula "p")]  [(Possibly (Not (AtomicFormula "p"))),(AtomicFormula "q")])[])]),(World (makeSequent []  [(Possibly (Not (AtomicFormula "p"))),(AtomicFormula "p")])[(World (makeSequent []  [(Possibly (Not (AtomicFormula "p"))),(Necessarily (AtomicFormula "q")),(Possibly (Not (AtomicFormula "p")))])[]),(World (makeSequent [(AtomicFormula "p"),(AtomicFormula "p")]  [(Possibly (Not (AtomicFormula "p"))),(Possibly (Not (AtomicFormula "p"))),(Possibly (Not (AtomicFormula "p")))])[(World (makeSequent [(AtomicFormula "p"),(AtomicFormula "p")]  [(Possibly (Not (AtomicFormula "p"))),(AtomicFormula "q")])[])])])])])
+m = buildModelFromHypersequent h "0"
+--m1 = buildModelFromHypersequent h1 "0"

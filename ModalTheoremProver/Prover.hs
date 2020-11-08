@@ -1,17 +1,17 @@
-module Prover 
+module ModalTheoremProver.Prover 
   (ProofTreeStatus(..) 
   , prove
   , showProof)
     where 
 
 
-import Utilities
-import Formula
-import Canonicalizer
-import Sequent
-import Hypersequent 
-import Model
-import IntuitionisticTranslator
+import ModalTheoremProver.Utilities
+import ModalTheoremProver.Formula
+import ModalTheoremProver.Canonicalizer
+import ModalTheoremProver.Sequent
+import ModalTheoremProver.Hypersequent 
+import ModalTheoremProver.Model
+import ModalTheoremProver.IntuitionisticTranslator
 import Data.Maybe
 
 data ProofTree = Closed | Open | Node Hypersequent [ProofTree] deriving (Eq)
@@ -77,7 +77,7 @@ generateStartingProofTree formula =
    in ((Node hypersequent [Open]), canonicalFormula)
 
 proofTreeRecursionLimit :: Int 
-proofTreeRecursionLimit = 5
+proofTreeRecursionLimit = 15
 
 generateProofTree :: Int -> Formula -> (ProofTreeStatus , ProofTree) -> (ProofTreeStatus, ProofTree)
 generateProofTree depth originalFormula (status, tree) 
@@ -87,9 +87,15 @@ generateProofTree depth originalFormula (status, tree)
   | depth == proofTreeRecursionLimit = (Unknown, tree)
   | otherwise = let newTree = 
                      treeRemoveDuplicates .
+                     applyUniversalModalRules .
                      applyPropositionalRules .
-                     applyModalRules $ tree 
-                 in  generateProofTree (depth + 1) originalFormula (Unknown, newTree)
+                     applyParticularModalRules $ tree 
+                    --potentiallyNewerTree = 
+                    --  if newTree == tree 
+                    --     then applyUniversalModalRules  tree
+                    --     else newTree
+                    newDepth = depth + 1
+                 in generateProofTree newDepth originalFormula (Unknown, newTree)
 
 checkTreeClosed :: ProofTree -> Bool 
 checkTreeClosed Closed = True 
@@ -247,11 +253,11 @@ applySequentComplexJunction polarity (Sequent negs poss) =
                     Positive -> Sequent negs (forms ++ irrelevant)
                     Negative -> Sequent (forms ++ irrelevant) poss) newRelevants
 
-applyModalRules :: ProofTree -> ProofTree
-applyModalRules = applyRightPossibility . 
-                  applyLeftNecessity .  
-                  applyRightNecessity . 
-                  applyLeftPossibility
+applyParticularModalRules :: ProofTree -> ProofTree
+applyParticularModalRules = applyRightNecessity .  applyLeftPossibility
+
+applyUniversalModalRules  :: ProofTree -> ProofTree 
+applyUniversalModalRules = applyRightPossibility .  applyLeftNecessity
 
 data Universality = Universal | Particular
 
@@ -369,12 +375,12 @@ pandq = (And [p, q])
 --h2 = (World s2 [(World s3 [(World s2 [])]), (World s4 [])])
 --p1 = Node h1 [(Node h2 [(Node h2 [(Node h1 [Open])]), (Node h1 [Closed])])]
 
-f = (Implies (Implies (Implies  p q) p) p)
+f = (Not (Not (Or [(Not (Implies (Not p) (Not (Not p)))), p])))
 
 
 (st, cf) = generateStartingProofTree f 
 
-s1 = applyPropositionalRules .  applyModalRules $ st
-s2 = applyPropositionalRules .  applyModalRules $ s1
-s3 = applyPropositionalRules .  applyModalRules $ s2
-s4 = applyPropositionalRules .  applyModalRules $ s3
+--s1 = applyPropositionalRules .  applyModalRules $ st
+--s2 = applyPropositionalRules .  applyModalRules $ s1
+--s3 = applyPropositionalRules .  applyModalRules $ s2
+--s4 = applyPropositionalRules .  applyModalRules $ s3
