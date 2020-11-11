@@ -17,6 +17,7 @@ module ModalTheoremProver.Formula
     , atomicPossibilityP
     , atomicNecessityP
     , formulaLessThan
+    , getAtomicsInFormula
     -- For Testing
     , cleanFormulaString
     , getListItems
@@ -164,11 +165,11 @@ compareJuncts conjunctsOne conjunctsTwo =
 -- Showing Formulas
 
 instance Show Formula where
-    show (AtomicFormula string) = string ++ " "
+    show (AtomicFormula string) = string
     show (And conjuncts) = "(And " ++ (joinStrings " " . map show) conjuncts ++ ")"
     show (Or disjuncts)  = "(Or " ++  (joinStrings  " " . map show) disjuncts ++ ")"
-    show (Implies antecedent consequent) = "(Implies " ++ (show antecedent) ++ (show consequent) ++ ")"
-    show (Equivalent formulaOne formulaTwo) = "(Equivalent  " ++ (show formulaOne) ++ (show formulaTwo) ++ ")"
+    show (Implies antecedent consequent) = "(Implies " ++ (show antecedent) ++ " " ++ (show consequent) ++ ")"
+    show (Equivalent formulaOne formulaTwo) = "(Equivalent  " ++ (show formulaOne) ++  " " ++  (show formulaTwo) ++ ")"
     show (Not negatum) = "(Not " ++ show negatum ++ ")"
     show (Possibly possibility) = "(M " ++ show possibility ++ ")"
     show (Necessarily necessity) = "(L " ++ show necessity ++ ")"
@@ -226,7 +227,7 @@ parseFormula xs =
                 "Not"           -> parseNegationString  . init $ rest
                 "M"             -> parsePossibilityString  . init $ rest
                 "L"             -> parseNecessityString  . init $ rest
-                otherwise -> Nothing
+                otherwise -> Just (AtomicFormula "Fuck Off")
 
 splitFormulaWord :: String -> (String, String)
 splitFormulaWord (x:xs) = splitStringAtFirst ' ' xs
@@ -303,7 +304,7 @@ parseBiconditionalString :: String  -> Maybe Formula
 parseBiconditionalString = parseBinaryFormulaString "Equivalent"
 
 parseBinaryFormulaString :: String -> String  -> Maybe Formula
-parseBinaryFormulaString xs parseType =
+parseBinaryFormulaString parseType xs =
   let topLevelItems = getTopLevelItems xs
    in if length topLevelItems /= 2
          then Nothing
@@ -417,6 +418,17 @@ possiblyFormulaJuncts junctionFunction gatherFunction formula = if junctionFunct
                                                                 then gatherFunction formula
                                                                 else [formula]
 
+getAtomicsInFormula :: Formula -> [Formula]
+getAtomicsInFormula form@(AtomicFormula string) = [form]
+getAtomicsInFormula (Not  form) = getAtomicsInFormula form
+getAtomicsInFormula (And forms) = mapAppend getAtomicsInFormula forms
+getAtomicsInFormula (Or  forms) = mapAppend  getAtomicsInFormula forms
+getAtomicsInFormula (Implies ant cons) =
+  getAtomicsInFormula ant ++ getAtomicsInFormula  cons
+getAtomicsInFormula (Equivalent one  two) =
+  getAtomicsInFormula one ++ getAtomicsInFormula two
+getAtomicsInFormula (Necessarily form) = getAtomicsInFormula form
+getAtomicsInFormula (Possibly form) = getAtomicsInFormula form
 
 -- @todo Test this function
 atomicModalFormulaP :: Formula -> Bool
@@ -427,7 +439,6 @@ atomicPossibilityP = atomicModalPInt Possible
 
 atomicNecessityP :: Formula -> Bool
 atomicNecessityP = atomicModalPInt Necessary
-
 
 data ModalType = Possible | Necessary deriving (Eq)
 
