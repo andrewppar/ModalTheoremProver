@@ -6,6 +6,7 @@ module ModalTheoremProver.Hypersequent
     , hypersequentClosed
     , atomicHypersequent
     , hypersequentRemoveDuplicates
+    , gatherAtomicFormulasInHypersequent
 ) where
 
 import ModalTheoremProver.Utilities
@@ -88,3 +89,9 @@ hypersequentRemoveDuplicates (World seq hypers) =
   let newSeq = (sequentRemoveDuplicates seq)
       newHypers = (map hypersequentRemoveDuplicates hypers)
    in World newSeq newHypers 
+
+gatherAtomicFormulasInHypersequent :: Hypersequent -> [Formula]
+gatherAtomicFormulasInHypersequent (World (Sequent negs poss) hypers) = 
+  let  recursiveCase = mapAppend gatherAtomicFormulasInHypersequent hypers
+       atomicFormulasInSequent = mapAppend getAtomicsInFormula (negs ++ poss)
+   in slowRemoveDuplicates (atomicFormulasInSequent ++ recursiveCase)

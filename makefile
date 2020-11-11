@@ -3,6 +3,7 @@ test :
 		time ./ModalTheoremProver/Tests
 
 clean : 
-	rm ./main/*.hi 
-	rm ./main/*.o 
-	rm ./main/Tests
+	rm -f ./ModalTheoremProver/*.hi 
+	rm -f ./ModalTheoremProver/*.o 
+	rm -f ./ModalTheoremProver/Tests
+	rm -f ./ModalTheoremProver/Main

@@ -92,7 +92,8 @@ intuitionisticProveTestCaseTable =
             (Not 
               (Or [ (Not (AtomicFormula "a"))
                    ,(Not (AtomicFormula "b"))]))), CounterExample)
---
+--  , ((Not (Not (Implies (Not (Implies (AtomicFormula "p") (Not (AtomicFormula "q")))) (Not (Not (AtomicFormula  "q")))))), Proved)
+--  , ((Not (Not (Implies (Not (Implies (AtomicFormula "p") (Not (AtomicFormula "q")))) (Not (Not (AtomicFormula  "p")))))), Proved)
 --                        ((Implies
 --                          (And
 --                           [(equiv (makeAtom "TVAI-1") (Implies (And [(makeAtom "A"), (makeAtom "B")]) (makeAtom "C"))),
@@ -102,11 +103,14 @@ intuitionisticProveTestCaseTable =
 --                           (makeAtom "TVAI-2")),
 --                         Proved),
 --
+  ,  ((Not (Not (Implies (Not (Implies p p)) (Not (Not (Not p)))))), Proved) 
   , ((equiv (And [(AtomicFormula "p")]) (AtomicFormula "p")) , Proved)
   , (p, CounterExample)
   , ((Not p),  CounterExample)
-  , ((Implies (Implies (Not (Implies p q)) r)
-              (Implies p (Implies (Not r) q))), CounterExample)
+  --, ((Implies (Implies (Not (Implies p q)) r)
+  --            (Implies p (Implies (Not r) q))), CounterExample)
+  , ((Not (Not (Or [(Not p), (And [(Not p), (Not p)])]))), CounterExample)
+--  , ((Not (Not (Or [(Not p), (Not (And [(Not p), (Not p)]))]))), Proved)
 
   ] 
 
