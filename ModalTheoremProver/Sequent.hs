@@ -15,6 +15,7 @@ module ModalTheoremProver.Sequent
  , makeNegativeSequent
  , sequentAtomicFormulasByPolarity
  , purelyModalOrAtomicSequentP
+ , gatherAtomicFormulas
  , gatherImplications
  , gatherConjunctions
  , gatherDisjunctions
@@ -114,6 +115,9 @@ makeAtomicSequentFromSequent :: Sequent -> Sequent
 makeAtomicSequentFromSequent sequent =
     (makeSequent (filter atomicFormulaP (negFormulas sequent))
                  (filter atomicFormulaP (posFormulas sequent)))
+
+gatherAtomicFormulas :: [Formula] -> ([Formula], [Formula])
+gatherAtomicFormulas = gatherFormulas atomicFormulaP
 
 gatherImplications :: [Formula] -> ([Formula], [Formula])
 gatherImplications = gatherFormulas implicationP

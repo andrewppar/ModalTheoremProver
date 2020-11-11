@@ -375,12 +375,15 @@ pandq = (And [p, q])
 --h2 = (World s2 [(World s3 [(World s2 [])]), (World s4 [])])
 --p1 = Node h1 [(Node h2 [(Node h2 [(Node h1 [Open])]), (Node h1 [Closed])])]
 
-f = (Not (Not (Or [(Not (Implies (Not p) (Not (Not p)))), p])))
-
-
+--f =  (equiv (And [(AtomicFormula "p")]) (AtomicFormula "p"))
+--f = (Or [p, (Not p)])
+f = (Not (Not (Implies (Not (Equivalent  (Not p) (Not p))) (Not q))))
+  
 (st, cf) = generateStartingProofTree f 
+func = treeRemoveDuplicates .  applyUniversalModalRules .  applyPropositionalRules .  applyParticularModalRules 
+s1 = func st
+s2 = func s1
+s3 = func s2
+s4 = func s3
 
---s1 = applyPropositionalRules .  applyModalRules $ st
---s2 = applyPropositionalRules .  applyModalRules $ s1
---s3 = applyPropositionalRules .  applyModalRules $ s2
---s4 = applyPropositionalRules .  applyModalRules $ s3
+
