@@ -18,7 +18,6 @@ module ModalTheoremProver.Formula
     , atomicNecessityP
     , formulaLessThan
     , getAtomicsInFormula
-    -- For Testing
     , cleanFormulaString
     , getListItems
     , parseConjunctionString
@@ -165,7 +164,7 @@ compareJuncts conjunctsOne conjunctsTwo =
 -- Showing Formulas
 
 instance Show Formula where
-    show (AtomicFormula string) = string
+    show (AtomicFormula string) = string 
     show (And conjuncts) = "(And " ++ (joinStrings " " . map show) conjuncts ++ ")"
     show (Or disjuncts)  = "(Or " ++  (joinStrings  " " . map show) disjuncts ++ ")"
     show (Implies antecedent consequent) = "(Implies " ++ (show antecedent) ++ " " ++ (show consequent) ++ ")"
