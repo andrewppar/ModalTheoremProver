@@ -39,38 +39,38 @@ testCaseTableVerbose function inputOutputPairs =
           putStrLn $ "\nOverall Result: " ++
                    if (generalizedConjunction . map fst) results
                    then "Success\n"
-                   else let failureCount = 
+                   else let failureCount =
                               length . filter (\x  -> not  x) . map fst $ results
                             total = length . map fst $ results
                          in "[" ++ (show failureCount) ++ "/" ++ (show total) ++ "] Failures"
- 
 
 
-intuitionisticProveTest :: Bool 
-intuitionisticProveTest = 
+
+intuitionisticProveTest :: Bool
+intuitionisticProveTest =
   testCaseTable prove intuitionisticProveTestCaseTable
 
 intuitionisticProveTestVerbose :: IO()
-intuitionisticProveTestVerbose = 
+intuitionisticProveTestVerbose =
   testCaseTableVerbose prove intuitionisticProveTestCaseTable
 
 intuitionisticProveTestCaseTable :: [(Formula, ProofTreeStatus)]
-intuitionisticProveTestCaseTable =  
+intuitionisticProveTestCaseTable =
   [
     ((Or [p, (Not p)]), CounterExample)
   , ((Implies (Implies (Implies p q) p) p), CounterExample)
   , ((Not (Not (Or [p, (Not p)]))), Proved)
   , ((Implies (Not (Not p)) p), CounterExample)
-  , ((Implies p (Not (Not p))), Proved) 
-  , ((Not (And [p, (Not p)])), Proved) 
+  , ((Implies p (Not (Not p))), Proved)
+  , ((Not (And [p, (Not p)])), Proved)
   , ((And [(Implies (Not p) (Not q))
            , (Or [(Not (Not p)), (Not q)])]), CounterExample)
-  , (p, CounterExample) 
+  , (p, CounterExample)
   , ((equiv (Not (Not (Not p))) p), CounterExample)
   , ((Implies p (Or [p, (Not p)])), Proved)
   , ((Or [(Or [p, q]), (Not p)]), CounterExample)
   , ((Implies p p), Proved)
-  , ((Implies (And [p 
+  , ((Implies (And [p
                     , (Implies p q)
                     , (Implies q r)])
               r), Proved)
@@ -85,11 +85,11 @@ intuitionisticProveTestCaseTable =
   , ((Not (Not (Implies (equiv (Not p) (Not p)) (Not q)))), CounterExample)
   , ((Not (Not (Implies (Not (equiv (Not p) (Not p))) (Not q)))), Proved)
   , ((Not (Not (Implies (Not (Implies p  p)) (Not q)))), Proved)
---  , ((Not (Not (Or [(Not (Implies (Not p) (Not (Not p)))), p]))), Proved)
--- 
+  , ((Not (Not (Or [(Not (Implies (Not p) (Not (Not p)))), p]))), Proved)
+--
 --  , ((Not (Not (Or [(Not (equiv p (Not p))), (Not (Not p))]))), Proved)
-  , ((equiv (And [(AtomicFormula "a"), (AtomicFormula "b")]) 
-            (Not 
+  , ((equiv (And [(AtomicFormula "a"), (AtomicFormula "b")])
+            (Not
               (Or [ (Not (AtomicFormula "a"))
                    ,(Not (AtomicFormula "b"))]))), CounterExample)
 --
@@ -108,8 +108,8 @@ intuitionisticProveTestCaseTable =
   , ((Implies (Implies (Not (Implies p q)) r)
               (Implies p (Implies (Not r) q))), CounterExample)
 
-  ] 
+  ]
 
-p = makeAtom "p" 
+p = makeAtom "p"
 q = makeAtom "q"
 r = makeAtom "r"

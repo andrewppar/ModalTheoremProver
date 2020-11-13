@@ -17,7 +17,7 @@ module ModalTheoremProver.Formula
     , atomicPossibilityP
     , atomicNecessityP
     , formulaLessThan
-    -- For Testing 
+    -- For Testing
     , cleanFormulaString
     , getListItems
     , parseConjunctionString
@@ -29,7 +29,7 @@ module ModalTheoremProver.Formula
     ) where
 
 import ModalTheoremProver.Utilities
-import Data.Maybe 
+import Data.Maybe
 import Data.Char
 
 
@@ -44,12 +44,12 @@ data Formula = AtomicFormula {atom :: String}
              | Necessarily {necessity :: Formula}
                deriving (Eq)
 
-instance Ord Formula where 
-  (<=) = formulaLessThanOrEqual 
+instance Ord Formula where
+  (<=) = formulaLessThanOrEqual
   (<) = formulaLessThan
   x > y =  not (formulaLessThanOrEqual x y)
   x >= y = not (formulaLessThan x  y)
-  max form1 form2 = if  (form1 < form2) then form2 else form1 
+  max form1 form2 = if  (form1 < form2) then form2 else form1
   min form1 form2 = if  (form1 > form2) then form2 else form1
 
 sortFormulas :: [Formula] -> [Formula]
@@ -84,7 +84,7 @@ stringLessThan [] _ = True
 stringLessThan _ [] = False
 stringLessThan (x:xs) (y:ys) = if charLessThan x y
                                then True
-                               else False 
+                               else False
 
 charLessThan :: Char -> Char -> Bool
 charLessThan c1 c2 =
@@ -120,7 +120,7 @@ complexFormulaLessThan (Implies ant con) _ = True
 
 complexFormulaLessThan (Equivalent one two) (Equivalent three four) = complexFormulaLessThan one three
 complexFormulaLessThan (Equivalent _ _) (Not _) = False
-complexFormulaLessThan (Equivalent _ _) (Implies _ _) = False  
+complexFormulaLessThan (Equivalent _ _) (Implies _ _) = False
 complexFormulaLessThan (Equivalent _ _) _ = True
 
 complexFormulaLessThan (And conjunctsOne) (And conjunctsTwo) =
@@ -164,7 +164,7 @@ compareJuncts conjunctsOne conjunctsTwo =
 -- Showing Formulas
 
 instance Show Formula where
-    show (AtomicFormula string) = show string ++ " "
+    show (AtomicFormula string) = string ++ " "
     show (And conjuncts) = "(And " ++ (joinStrings " " . map show) conjuncts ++ ")"
     show (Or disjuncts)  = "(Or " ++  (joinStrings  " " . map show) disjuncts ++ ")"
     show (Implies antecedent consequent) = "(Implies " ++ (show antecedent) ++ (show consequent) ++ ")"
@@ -173,58 +173,58 @@ instance Show Formula where
     show (Possibly possibility) = "(M " ++ show possibility ++ ")"
     show (Necessarily necessity) = "(L " ++ show necessity ++ ")"
 
-serializeFormulaAsHaskell :: Formula -> String 
-serializeFormulaAsHaskell (AtomicFormula string) = 
+serializeFormulaAsHaskell :: Formula -> String
+serializeFormulaAsHaskell (AtomicFormula string) =
   "(AtomicFormula " ++ show string ++ ")"
-serializeFormulaAsHaskell (Not negatum) = 
+serializeFormulaAsHaskell (Not negatum) =
   "(Not " ++ serializeFormulaAsHaskell negatum ++ ")"
-serializeFormulaAsHaskell (And conjuncts) = 
+serializeFormulaAsHaskell (And conjuncts) =
   let  prefix  = "(And ["
        middle = joinStrings "," . map serializeFormulaAsHaskell $ conjuncts
        postfix = "])"
-   in prefix ++ middle ++ postfix 
-serializeFormulaAsHaskell (Or disjuncts) = 
+   in prefix ++ middle ++ postfix
+serializeFormulaAsHaskell (Or disjuncts) =
    let  prefix  = "(Or ["
         middle = joinStrings "," . map serializeFormulaAsHaskell $ disjuncts
         postfix = "])"
    in prefix ++ middle ++ postfix
-serializeFormulaAsHaskell (Implies antecedent consequent) = 
+serializeFormulaAsHaskell (Implies antecedent consequent) =
   joinStrings "" [ "(Implies "
                  , serializeFormulaAsHaskell antecedent
                  , serializeFormulaAsHaskell consequent
                  , ")"]
-serializeFormulaAsHaskell (Equivalent one two) = 
+serializeFormulaAsHaskell (Equivalent one two) =
   joinStrings "" [ "(Equivalent "
                  , serializeFormulaAsHaskell one
                  , serializeFormulaAsHaskell two
                  , ")"]
-serializeFormulaAsHaskell (Necessarily necessity) = 
+serializeFormulaAsHaskell (Necessarily necessity) =
   "(Necessarily " ++ serializeFormulaAsHaskell necessity ++ ")"
-serializeFormulaAsHaskell (Possibly possibility) = 
+serializeFormulaAsHaskell (Possibly possibility) =
   "(Possibly " ++ serializeFormulaAsHaskell possibility ++ ")"
 
- 
+
 
 -- Reading Formulas
 
-parseFormula :: String -> Maybe Formula 
-parseFormula [] = Nothing 
-parseFormula xs = 
+parseFormula :: String -> Maybe Formula
+parseFormula [] = Nothing
+parseFormula xs =
   let cleanString = cleanFormulaString xs
       (formulaWord, rest) = splitFormulaWord cleanString
-   in if rest == [] 
+   in if rest == []
          then Nothing
       else if last rest /= ')'
-              then Nothing 
-           else 
-              case formulaWord of 
+              then Nothing
+           else
+              case formulaWord of
                 "AtomicFormula" -> parseAtomicFormula rest
                 "And"           -> parseConjunctionString . init $ rest
                 "Or"            -> parseDisjunctionString . init $ rest
                 "Implies"       -> parseImplicationString . init $ rest
                 "Equivalent"    -> parseBiconditionalString . init $ rest
                 "Not"           -> parseNegationString  . init $ rest
-                "M"             -> parsePossibilityString  . init $ rest 
+                "M"             -> parsePossibilityString  . init $ rest
                 "L"             -> parseNecessityString  . init $ rest
                 otherwise -> Nothing
 
@@ -232,137 +232,137 @@ splitFormulaWord :: String -> (String, String)
 splitFormulaWord (x:xs) = splitStringAtFirst ' ' xs
 
 cleanFormulaString :: String -> String
-cleanFormulaString string = 
+cleanFormulaString string =
   let specialBackwardChars = [' ', ')', ']']
       specialForwardChars = ['(', '[']
-      almostClean =  snd $ foldr (\x (prev, result) -> 
+      almostClean =  snd $ foldr (\x (prev, result) ->
                                    if x == ' ' && prev `elem` specialBackwardChars
                                       then (prev, result)
                                     else if x `elem` specialForwardChars && prev == ' '
                                             then ('(', x:(tail result))
                                           else (x, x:result)) (' ', []) string
-   in if almostClean == [] 
-         then [] 
+   in if almostClean == []
+         then []
       else if head almostClean == ' '
-              then tail almostClean 
+              then tail almostClean
            else almostClean
 
 parseAtomicFormula :: String -> Maybe Formula
-parseAtomicFormula xs = 
+parseAtomicFormula xs =
   if filter(\x -> x /= ' ') xs /= xs
      then Nothing
   else let formula = init xs
         in Just (AtomicFormula formula)
 
-parseConjunctionString :: String -> Maybe Formula 
+parseConjunctionString :: String -> Maybe Formula
 parseConjunctionString = parseJunctionString "And"
 
-parseDisjunctionString :: String -> Maybe Formula 
+parseDisjunctionString :: String -> Maybe Formula
 parseDisjunctionString = parseJunctionString "Or"
 
-parseJunctionString :: String -> String -> Maybe Formula 
-parseJunctionString junction xs = 
+parseJunctionString :: String -> String -> Maybe Formula
+parseJunctionString junction xs =
   if (head xs) /= '[' || (last xs) /= ']'
      then Nothing
   else let potentialArgs = map parseFormula . getListItems $ xs
         in if Nothing `elem` potentialArgs
               then Nothing
-           else case junction of 
+           else case junction of
                   "And" -> Just (And (map Data.Maybe.fromJust potentialArgs))
                   "Or"  -> Just (Or  (map Data.Maybe.fromJust potentialArgs))
 
 getListItems :: String -> [String]
-getListItems [] = [] 
+getListItems [] = []
 getListItems (x:xs) = getListItemsInternal 0 0 x xs "" []
 
 getListItemsInternal :: Int -> Int -> Char -> String -> String -> [String] -> [String]
 getListItemsInternal bracketCount parenCount char [] currentItem acc = acc ++ [currentItem]
-getListItemsInternal 1 0 ',' (x:xs) currentItem acc = 
+getListItemsInternal 1 0 ',' (x:xs) currentItem acc =
   getListItemsInternal 1 0 x xs "" (acc ++ [currentItem])
 getListItemsInternal 1 0 ' ' (x:xs) currentItem acc =
   getListItemsInternal 1 0 x xs currentItem acc
 getListItemsInternal 0 0 '[' (x:xs) currentItem acc =
   getListItemsInternal 1 0 x xs currentItem acc
-getListItemsInternal 1 parenCount ']' (x:xs) currentItem acc = 
-  getListItemsInternal 0 parenCount x xs currentItem acc 
+getListItemsInternal 1 parenCount ']' (x:xs) currentItem acc =
+  getListItemsInternal 0 parenCount x xs currentItem acc
 getListItemsInternal bracketCount parenCount '[' (x:xs) currentItem acc =
   getListItemsInternal (bracketCount + 1) parenCount x xs (currentItem ++ ['[']) acc
 getListItemsInternal bracketCount parenCount '(' (x:xs) currentItem acc =
-  getListItemsInternal bracketCount (parenCount + 1) x xs (currentItem ++ ['(']) acc 
-getListItemsInternal bracketCount parenCount ']' (x:xs) currentItem acc = 
-  getListItemsInternal (bracketCount - 1) parenCount x xs (currentItem ++ [']']) acc 
-getListItemsInternal bracketCount parenCount ')' (x:xs) currentItem acc = 
+  getListItemsInternal bracketCount (parenCount + 1) x xs (currentItem ++ ['(']) acc
+getListItemsInternal bracketCount parenCount ']' (x:xs) currentItem acc =
+  getListItemsInternal (bracketCount - 1) parenCount x xs (currentItem ++ [']']) acc
+getListItemsInternal bracketCount parenCount ')' (x:xs) currentItem acc =
   getListItemsInternal bracketCount (parenCount - 1) x xs (currentItem ++ [')']) acc
-getListItemsInternal bracketCount parenCount char (x:xs) currentItem acc = 
+getListItemsInternal bracketCount parenCount char (x:xs) currentItem acc =
   getListItemsInternal bracketCount parenCount x xs (currentItem ++ [char]) acc
 
 parseImplicationString :: String -> Maybe Formula
 parseImplicationString = parseBinaryFormulaString "Implies"
 
-parseBiconditionalString :: String  -> Maybe Formula 
+parseBiconditionalString :: String  -> Maybe Formula
 parseBiconditionalString = parseBinaryFormulaString "Equivalent"
 
 parseBinaryFormulaString :: String -> String  -> Maybe Formula
-parseBinaryFormulaString xs parseType = 
-  let topLevelItems = getTopLevelItems xs 
-   in if length topLevelItems /= 2 
+parseBinaryFormulaString xs parseType =
+  let topLevelItems = getTopLevelItems xs
+   in if length topLevelItems /= 2
          then Nothing
-      else let args = map parseFormula topLevelItems 
+      else let args = map parseFormula topLevelItems
             in if Nothing `elem` args
                   then Nothing
                else let antecedent = Data.Maybe.fromJust . head $ args
                         consequent = Data.Maybe.fromJust .  head . tail $ args
-                     in case  parseType of 
+                     in case  parseType of
                        "Implies" -> Just (Implies antecedent consequent)
                        "Equivalent" -> Just (Equivalent antecedent consequent)
 
 
-parseNegationString :: String -> Maybe Formula 
+parseNegationString :: String -> Maybe Formula
 parseNegationString = parseUnaryFormulaString "Not"
 
-parsePossibilityString :: String -> Maybe Formula 
+parsePossibilityString :: String -> Maybe Formula
 parsePossibilityString = parseUnaryFormulaString "M"
 
-parseNecessityString :: String -> Maybe Formula 
+parseNecessityString :: String -> Maybe Formula
 parseNecessityString = parseUnaryFormulaString "L"
 
-parseUnaryFormulaString :: String -> String -> Maybe Formula 
-parseUnaryFormulaString mainOperator xs = 
+parseUnaryFormulaString :: String -> String -> Maybe Formula
+parseUnaryFormulaString mainOperator xs =
   let topLevelItems = getTopLevelItems xs
    in if length topLevelItems /= 1
          then Nothing
-      else let potentialArgString = head topLevelItems 
-               potentialArg = parseFormula potentialArgString 
+      else let potentialArgString = head topLevelItems
+               potentialArg = parseFormula potentialArgString
             in if potentialArg == Nothing
                   then Nothing
-               else case mainOperator of 
+               else case mainOperator of
                       "Not" -> Just . Not . Data.Maybe.fromJust $ potentialArg
                       "M"   -> Just . Possibly . Data.Maybe.fromJust $ potentialArg
                       "L"   -> Just . Necessarily . Data.Maybe.fromJust $ potentialArg
 
 getTopLevelItems :: String -> [String]
 getTopLevelItems [] = []
-getTopLevelItems (x:xs) = getTopLevelItemsInternal 0 x xs "" [] 
+getTopLevelItems (x:xs) = getTopLevelItemsInternal 0 x xs "" []
 
 getTopLevelItemsInternal :: Int -> Char -> String -> String -> [String] -> [String]
 getTopLevelItemsInternal _ char [] currentItem acc = acc ++ [currentItem ++ [char]]
-getTopLevelItemsInternal 1 ')' (x:xs) currentItem acc = 
+getTopLevelItemsInternal 1 ')' (x:xs) currentItem acc =
   getTopLevelItemsInternal 0 x xs "" (acc ++ [currentItem ++ [')']])
-getTopLevelItemsInternal 0 '(' (x:xs) currentItem acc  = 
+getTopLevelItemsInternal 0 '(' (x:xs) currentItem acc  =
   getTopLevelItemsInternal 1 x xs (currentItem ++ ['(']) acc
 getTopLevelItemsInternal 0 _ (x:xs) "" acc = getTopLevelItemsInternal 0 x xs [] acc
-getTopLevelItemsInternal parenCount '(' (x:xs) currentItem acc  = 
+getTopLevelItemsInternal parenCount '(' (x:xs) currentItem acc  =
   getTopLevelItemsInternal (parenCount + 1) x xs (currentItem ++ ['(']) acc
-getTopLevelItemsInternal parenCount ')' (x:xs) currentItem acc  = 
-  getTopLevelItemsInternal (parenCount - 1) x xs (currentItem ++ [')']) acc 
+getTopLevelItemsInternal parenCount ')' (x:xs) currentItem acc  =
+  getTopLevelItemsInternal (parenCount - 1) x xs (currentItem ++ [')']) acc
 getTopLevelItemsInternal parenCount char (x:xs) currentItem acc =
-  getTopLevelItemsInternal parenCount x xs (currentItem ++ [char]) acc 
+  getTopLevelItemsInternal parenCount x xs (currentItem ++ [char]) acc
 
 
 ---- Constructing Formulas
 
 equiv :: Formula -> Formula -> Formula
-equiv a b = (Equivalent a b) 
+equiv a b = (Equivalent a b)
 
 makeAtom :: String -> Formula
 makeAtom string = AtomicFormula string
@@ -376,12 +376,12 @@ atomicFormulaP _ = False
 nonAtomicFormulaP :: Formula -> Bool
 nonAtomicFormulaP = not . atomicFormulaP
 
-implicationP :: Formula -> Bool 
+implicationP :: Formula -> Bool
 implicationP (Implies _ _) = True
 implicationP _ = False
 
-equivalenceP :: Formula -> Bool 
-equivalenceP (Equivalent _ _) = True 
+equivalenceP :: Formula -> Bool
+equivalenceP (Equivalent _ _) = True
 equivalenceP _ = False
 
 disjunctionP :: Formula -> Bool
