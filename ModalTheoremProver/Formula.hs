@@ -6,6 +6,7 @@ module ModalTheoremProver.Formula
     , makeAtom
     , atomicFormulaP
     , nonAtomicFormulaP
+    , doubleNegationP
     , implicationP
     , disjunctionP
     , conjunctionP
@@ -164,7 +165,7 @@ compareJuncts conjunctsOne conjunctsTwo =
 -- Showing Formulas
 
 instance Show Formula where
-    show (AtomicFormula string) = string 
+    show (AtomicFormula string) = string
     show (And conjuncts) = "(And " ++ (joinStrings " " . map show) conjuncts ++ ")"
     show (Or disjuncts)  = "(Or " ++  (joinStrings  " " . map show) disjuncts ++ ")"
     show (Implies antecedent consequent) = "(Implies " ++ (show antecedent) ++ " " ++ (show consequent) ++ ")"
@@ -395,6 +396,10 @@ conjunctionP _ = False
 negationP :: Formula -> Bool
 negationP (Not _) = True
 negationP _ = False
+
+doubleNegationP :: Formula -> Bool
+doubleNegationP (Not (Not _)) = True
+doubleNegationP _ = False
 
 possibilityP :: Formula -> Bool
 possibilityP (Possibly _) = True

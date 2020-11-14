@@ -15,11 +15,16 @@ import ModalTheoremProver.Formula
 
 canonicalizeFormula :: Formula -> Formula -- Convert a formula to DNF, then if we want to get real fancy we can write heuristics for which disjunct to try first.
 canonicalizeFormula formula =
+    -- START HERE
+    -- TODO: The czer still lets conjunctions whose conjuncts  are all the same through
+    -- We should get rid of those too to simplify proofs it may help with some of the harder
+    -- formulas.
     reorderSubFormulas
   . reduceModals
   . modalsOut
   . reduceNegations
   . negationIn
+--  . modalsIn
   . implicationOut
   . simplifyEquivalence $ formula
 

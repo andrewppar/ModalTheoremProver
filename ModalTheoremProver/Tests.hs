@@ -38,7 +38,7 @@ testCaseTableVerbose function inputOutputPairs =
     in do sequence_ . map snd $ results
           putStrLn $ "\nOverall Result: " ++
                    if (generalizedConjunction . map fst) results
-                   then "Success\n"
+                   then (show . length . map fst) results ++ " Success\n"
                    else let failureCount =
                               length . filter (\x  -> not  x) . map fst $ results
                             total = length . map fst $ results
@@ -86,32 +86,32 @@ intuitionisticProveTestCaseTable =
   , ((Not (Not (Implies (Not (equiv (Not p) (Not p))) (Not q)))), Proved)
   , ((Not (Not (Implies (Not (Implies p  p)) (Not q)))), Proved)
   , ((Not (Not (Or [(Not (Implies (Not p) (Not (Not p)))), p]))), Proved)
---
---  , ((Not (Not (Or [(Not (equiv p (Not p))), (Not (Not p))]))), Proved)
+  , ((Not (Not (Or [(Not (equiv p (Not p))), (Not (Not p))]))), Proved)
   , ((equiv (And [(AtomicFormula "a"), (AtomicFormula "b")])
             (Not
               (Or [ (Not (AtomicFormula "a"))
                    ,(Not (AtomicFormula "b"))]))), CounterExample)
---  , ((Not (Not (Implies (Not (Implies (AtomicFormula "p") (Not (AtomicFormula "q")))) (Not (Not (AtomicFormula  "q")))))), Proved)
---  , ((Not (Not (Implies (Not (Implies (AtomicFormula "p") (Not (AtomicFormula "q")))) (Not (Not (AtomicFormula  "p")))))), Proved)
---                        ((Implies
---                          (And
---                           [(equiv (makeAtom "TVAI-1") (Implies (And [(makeAtom "A"), (makeAtom "B")]) (makeAtom "C"))),
---                            (equiv (makeAtom "TVAI-2") (Implies (And [(makeAtom "A"), (makeAtom "D")]) (makeAtom "C"))),
---                            (makeAtom "TVAI-1"),
---                            (Implies (makeAtom "D") (makeAtom "B"))])
---                           (makeAtom "TVAI-2")),
---                         Proved),
+  , ((Not (Not (Implies (Not (Implies (AtomicFormula "p") (Not (AtomicFormula "q")))) (Not (Not (AtomicFormula  "q")))))), Proved)
+  , ((Not (Not (Implies (Not (Implies (AtomicFormula "p") (Not (AtomicFormula "q")))) (Not (Not (AtomicFormula  "p")))))), Proved)
+--  , ((Implies
+--      (And
+--       [(equiv (makeAtom "TVAI-1") (Implies (And [(makeAtom "A"), (makeAtom "B")]) (makeAtom "C")))
+--       , (equiv (makeAtom "TVAI-2") (Implies (And [(makeAtom "A"), (makeAtom "D")]) (makeAtom "C")))
+--       , (makeAtom "TVAI-1")
+--       , (Implies (makeAtom "D") (makeAtom "B"))]) (makeAtom "TVAI-2"))
+--    , Proved)
 --
-  ,  ((Not (Not (Implies (Not (Implies p p)) (Not (Not (Not p)))))), Proved) 
+  ,  ((Not (Not (Implies (Not (Implies p p)) (Not (Not (Not p)))))), Proved)
   , ((equiv (And [(AtomicFormula "p")]) (AtomicFormula "p")) , Proved)
   , (p, CounterExample)
   , ((Not p),  CounterExample)
   --, ((Implies (Implies (Not (Implies p q)) r)
   --            (Implies p (Implies (Not r) q))), CounterExample)
   , ((Not (Not (Or [(Not p), (And [(Not p), (Not p)])]))), CounterExample)
---  , ((Not (Not (Or [(Not p), (Not (And [(Not p), (Not p)]))]))), Proved)
-
+  , ((Not (Not (Or [(Not p), (Not (And [(Not p), (Not p)]))]))), Proved)
+  , ((Not (Not (equiv (Not p ) (Not (Not (Implies p (Not p))))))), Proved)
+  , ((Not (Not (equiv (Not p) (Not (Not (Not (Or [p, p]))))))), Proved)
+  , ((Not (Not (Implies (Not p) (Not (Not (Not (Not (Not (Not (Not p)))))))))), Proved)
   ]
 
 p = makeAtom "p"
