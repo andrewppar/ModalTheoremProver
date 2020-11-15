@@ -19,7 +19,8 @@ canonicalizeFormula formula =
     -- TODO: The czer still lets conjunctions whose conjuncts  are all the same through
     -- We should get rid of those too to simplify proofs it may help with some of the harder
     -- formulas.
-    reorderSubFormulas
+    simplifyJunctions
+  . reorderSubFormulas
   . reduceModals
   . modalsOut
   . reduceNegations
@@ -90,6 +91,17 @@ reduceNegations (Possibly possibility) = (Possibly (reduceNegations possibility)
 reduceNegations (Necessarily necessity) =
   (Necessarily (reduceNegations necessity))
 reduceNegations atom = atom
+
+simplifyJunctions :: Formula -> Formula
+simplifyJunctions form@(And conjuncts) =
+    if listOfRepeatsP conjuncts
+       then (And [(head conjuncts)])
+       else form
+simplifyJunctions form@(Or disjuncts) =
+    if listOfRepeatsP disjuncts
+       then (Or [(head disjuncts)])
+       else form
+simplifyJunctions form = form
 
 modalsIn :: Formula -> Formula
 modalsIn (Not negatum) = (Not (modalsIn negatum))
