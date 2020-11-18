@@ -17,12 +17,13 @@ module ModalTheoremProver.Utilities
     , quickSort
     , snoc
     , slowRemoveDuplicates
-    , splitStringAtFirst 
+    , splitStringAtFirst
     , conjoinedWith
     , joinStrings
     , makePrefix
     , setsEqual
     , compareListsByFunction
+    , listOfRepeatsP
     ) where
 
 import Control.Parallel
@@ -42,11 +43,11 @@ emptyListP _  = False
 some :: (a -> Bool) -> [a] -> Bool
 some f items = someItemsTrue . map f $ items
 
-someItemsTrue :: [Bool] -> Bool 
+someItemsTrue :: [Bool] -> Bool
 someItemsTrue [] = False
-someItemsTrue (x:xs) = 
-  if x 
-     then True 
+someItemsTrue (x:xs) =
+  if x
+     then True
      else someItemsTrue xs
 
 append :: [a] -> [a] -> [a]
@@ -84,12 +85,12 @@ addEachToEachInList xs (y:ys) =
 
 
 cartesianProduct :: [[a]] -> [[a]]  -- @todo make this recursive
-cartesianProduct [] =  [] 
+cartesianProduct [] =  []
 cartesianProduct [x] = map (\y -> [y])  x
-cartesianProduct (firstList:lists) = 
+cartesianProduct (firstList:lists) =
   let recursiveCase = cartesianProduct lists
-   in foldr (\item result -> 
-     let intermediateResult = 
+   in foldr (\item result ->
+     let intermediateResult =
            foldr (\list acc -> (item:list):acc) [] recursiveCase
       in intermediateResult ++ result) [] firstList
 
@@ -167,32 +168,38 @@ conjoinedWith f1 f2 item = f1 item && f2 item
 
 splitStringAtFirst :: Char -> String -> (String, String)
 splitStringAtFirst char [] = ([], [])
-splitStringAtFirst char (x:xs) = 
-  if x == char 
+splitStringAtFirst char (x:xs) =
+  if x == char
      then ([], xs)
-  else 
-     let (first, second)  = splitStringAtFirst char xs 
+  else
+     let (first, second)  = splitStringAtFirst char xs
       in (x:first, second)
 
 joinStrings :: String -> [String] -> String
-joinStrings _ [] =  "" 
+joinStrings _ [] =  ""
 joinStrings stringToInsert (x:xs) = x ++ (foldl (\string accumulator -> string ++ stringToInsert ++  accumulator) "" xs)
 
 makePrefix :: Int -> String -> String
-makePrefix repeatTimes str = 
+makePrefix repeatTimes str =
   foldr (\x acc -> x ++ acc) [] . take repeatTimes . repeat $  str
 
-setsEqual :: (Eq a) => [a] -> [a] -> Bool 
-setsEqual xs ys = 
-  let subset = 
-        (\a b -> 
+setsEqual :: (Eq a) => [a] -> [a] -> Bool
+setsEqual xs ys =
+  let subset =
+        (\a b ->
           (filter (\bool -> bool /= True) . map (\x ->  x `elem` b) $ a) ==  [])
-   in (subset xs ys) && subset ys xs  
+   in (subset xs ys) && subset ys xs
 
 compareListsByFunction :: (a -> a -> Bool) -> [a] -> [a] -> Bool
 compareListsByFunction f [] _ = True
 compareListsByFunction f (x:xs) [] = False
 compareListsByFunction f (x:xs) (y:ys) = f x y
+
+listOfRepeatsP :: (Eq a) => [a] -> Bool
+listOfRepeatsP [] = False
+listOfRepeatsP (x:xs) =
+    emptyListP . filter (\y -> y  /= x) $ xs
+
 
 {-| Parallel Experiment |-}
 
@@ -212,4 +219,3 @@ badFib n =  a +  b
 
 check1 = (parMap rdeepseq) badFib (replicate 5 40)
 check2 = map badFib (replicate 5 40)
-

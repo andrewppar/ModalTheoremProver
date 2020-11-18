@@ -1,7 +1,9 @@
 test : 
 	ghc -O2 ./ModalTheoremProver/Tests.hs
-		time ./ModalTheoremProver/Tests
-
+	time ./ModalTheoremProver/Tests
+main : 
+	ghc -O2 ./ModalTheoremProver/Main.hs
+	
 clean : 
 	rm -f ./ModalTheoremProver/*.hi 
 	rm -f ./ModalTheoremProver/*.o 
