@@ -311,7 +311,7 @@ s2 = makeSequent []  [p,q]
 h1 = (World s0 [(World s2 [])])
 m1 = buildModelsFromHypersequent h1 "0"
 
-f = (Necessarily (Possibly (Necessarily (Or [(Necessarily (Possibly (Not q))) ,(Necessarily (Possibly (Or [p, (Not  p)])))]))))
-h = (World (makeSequent []  [])[(World (makeSequent []  [(Necessarily (Or [(Necessarily (Possibly (Not (AtomicFormula "q")))),(Possibly (Necessarily (Or [(AtomicFormula "p"),(Not (AtomicFormula "p"))])))])),(Possibly (Necessarily (Or [(Necessarily (Possibly (Not (AtomicFormula "q")))),(Possibly (Necessarily (Or [(AtomicFormula "p"),(Not (AtomicFormula "p"))])))])))])[])])
+f = (Necessarily (Possibly (Or [(Necessarily p), (And [p, (Not p)])]))) 
+h = (World (makeSequent []  [])[(World (makeSequent []  [(Possibly (Or [(Necessarily (AtomicFormula "p")),(And [(AtomicFormula "p"),(Not (AtomicFormula "p"))])])),(Or [(Necessarily (AtomicFormula "p")),(And [(AtomicFormula "p"),(Not (AtomicFormula "p"))])])])[])]) 
   
 m = buildModelsFromHypersequent h "0"
