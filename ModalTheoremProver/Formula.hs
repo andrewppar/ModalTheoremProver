@@ -227,7 +227,7 @@ parseFormula xs =
                 "Not"           -> parseNegationString  . init $ rest
                 "M"             -> parsePossibilityString  . init $ rest
                 "L"             -> parseNecessityString  . init $ rest
-                otherwise -> Just (AtomicFormula "Fuck Off")
+                otherwise -> Nothing
 
 splitFormulaWord :: String -> (String, String)
 splitFormulaWord (x:xs) = splitStringAtFirst ' ' xs

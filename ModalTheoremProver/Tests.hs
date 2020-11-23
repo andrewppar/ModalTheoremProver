@@ -112,6 +112,8 @@ intuitionisticProveTestCaseTable =
   , ((Not (Not (equiv (Not p ) (Not (Not (Implies p (Not p))))))), Proved)
   , ((Not (Not (equiv (Not p) (Not (Not (Not (Or [p, p]))))))), Proved)
   , ((Not (Not (Implies (Not p) (Not (Not (Not (Not (Not (Not (Not p)))))))))), Proved)
+  , ((Not (And [(Implies p p), (Not p)])), CounterExample) -- This is correct in getting a counterexample but the counterexample is bad.
+  , ((Not (Not (Or [(Not (equiv (Not (AtomicFormula "a")) (AtomicFormula "a"))), (Not (Not (AtomicFormula "b")))]))), Proved) 
   ]
 
 p = makeAtom "p"

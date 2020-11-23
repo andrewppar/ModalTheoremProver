@@ -375,8 +375,7 @@ pandq = (And [p, q])
 --h2 = (World s2 [(World s3 [(World s2 [])]), (World s4 [])])
 --p1 = Node h1 [(Node h2 [(Node h2 [(Node h1 [Open])]), (Node h1 [Closed])])]
 
-f = (Not (Not (Or [(Not (Implies (Not p) (Not (Not p)))), p])))
-
+f = (Not (And [(Implies p p), (Not p)]))
 
 (st, cf) = generateStartingProofTree f
 
