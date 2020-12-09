@@ -13,18 +13,18 @@ parseArgs :: [String] -> IO()
 parseArgs ["-h"] = do 
   putStrLn "Intuitionistic Theorem Prover"
   putStrLn "  -----                ------------       " 
-  putStrLn " |     |              |             \\     "
-  putStrLn " |     |              |      --      \\    " 
-  putStrLn " |     |              |     |   \\     \\   " 
-  putStrLn " |     |              |     |   /     /   " 
-  putStrLn " |      ----------    |      --      /    " 
-  putStrLn " |                |   |             /     "
-  putStrLn " |                |   |             \\     "
-  putStrLn " |      ----------    |      --      \\    " 
-  putStrLn " |     |              |     |   \\     \\   " 
-  putStrLn " |     |              |     |   /     /   " 
-  putStrLn " |     |              |      --      /    " 
-  putStrLn " |     |              |             /     " 
+  putStrLn " |:::::|              |:::::::::::::\\     "
+  putStrLn " |:::::|              |::::::--::::::\\    " 
+  putStrLn " |:::::|              |:::::|   \\:::::\\   " 
+  putStrLn " |:::::|              |:::::|   /:::::/   " 
+  putStrLn " |::::: ----------    |::::::--::::::/    " 
+  putStrLn " |::::::::::::::::|   |:::::::::::::/     "
+  putStrLn " |::::::::::::::::|   |:::::::::::::\\     "
+  putStrLn " |::::: ----------    |::::::--::::::\\    " 
+  putStrLn " |:::::|              |:::::|   \\:::::\\   " 
+  putStrLn " |:::::|              |:::::|   /:::::/   " 
+  putStrLn " |:::::|              |::::::--::::::/    " 
+  putStrLn " |:::::|              |:::::::::::::/     " 
   putStrLn "  -----                ------------       " 
   putStrLn ""
   putStrLn "Usage: " 
@@ -69,4 +69,6 @@ parseArgs [formula] =
   let parsedFormula = parseFormula formula
    in if parsedFormula == Nothing
          then do putStrLn (formula ++ " is not a well-formed formula")
-         else do putStrLn . show . prove . fromJust $ parsedFormula
+         else do if  (show . prove . fromJust $ parsedFormula) == "Proved"
+                     then putStrLn $ " is an intuitionistic tautology"
+                     else putStrLn $ " is not an intuitionistic tautology"
